@@ -42,72 +42,57 @@ main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
 .verdict h2{font-size:.92rem;margin-bottom:.1rem}
 .verdict p{font-size:.78rem;color:var(--gray)}
 
-/* ── Single-row metric strip ── */
-.metric-strip{
-  display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
-  gap:.55rem;
-  margin-bottom:1rem;
-  width:100%;
-}
-/* Portrait tablet: 3 columns */
-@media(max-width:880px){.metric-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
-/* Portrait phone: 2 columns */
-@media(max-width:520px){.metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* ── Metric rows — one per metric, full width ── */
+.metric-strip{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1rem}
 
 .metric-card{
-  background:var(--card);border-radius:8px;padding:.65rem .7rem;
-  box-shadow:var(--shadow);border:1.5px solid var(--border);
-  display:flex;flex-direction:column;gap:.3rem;
-  min-width:0;overflow:hidden;   /* prevent blowout */
+  background:var(--card);border-radius:8px;border:1.5px solid var(--border);
+  box-shadow:var(--shadow);display:grid;
+  grid-template-columns:210px 230px 1fr;
+  min-width:0;overflow:hidden;
 }
 .metric-card.is-outlier{border-color:#f5a9a9}
 
-.metric-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.25rem;min-width:0}
-.metric-name{
-  font-weight:700;font-size:.75rem;color:var(--blue);
-  line-height:1.2;flex:1;min-width:0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+/* Left zone: name + numbers */
+.metric-left{padding:.8rem .95rem;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:.4rem}
+/* Middle zone: histogram */
+.metric-mid{padding:.8rem .95rem;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;gap:.3rem}
+/* Right zone: always-visible explanation */
+.metric-right{padding:.8rem 1.1rem;display:flex;flex-direction:column;gap:.45rem;overflow:hidden}
+
+/* Responsive: stack vertically on narrow screens */
+@media(max-width:860px){
+  .metric-card{grid-template-columns:1fr}
+  .metric-left,.metric-mid{border-right:none;border-bottom:1px solid var(--border)}
 }
+
+.metric-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.3rem}
+.metric-name{font-weight:700;font-size:.82rem;color:var(--blue);line-height:1.2;flex:1}
 .metric-card.is-outlier .metric-name{color:var(--red)}
 
-/* Tiny superscript info — only visible on hover of the card */
+/* Tiny superscript info — always faintly visible */
 .info-sup{
-  font-size:.6rem;color:var(--blue);cursor:pointer;
-  opacity:0;transition:opacity .15s;
-  text-decoration:none;vertical-align:super;margin-left:1px;
+  font-size:.62rem;color:var(--blue);cursor:pointer;opacity:.4;
+  transition:opacity .15s;vertical-align:super;margin-left:2px;
   border:none;background:none;padding:0;line-height:1;
 }
-.metric-card:hover .info-sup{opacity:.6}
-.info-sup:hover{opacity:1 !important;text-decoration:underline}
+.info-sup:hover{opacity:1;text-decoration:underline}
 
-.pct-badge{font-size:.65rem;font-weight:700;padding:.12rem .38rem;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.pct-badge{font-size:.7rem;font-weight:700;padding:.15rem .42rem;border-radius:10px;white-space:nowrap;flex-shrink:0}
 .pct-badge.outlier {background:#fde8e8;color:var(--red)}
 .pct-badge.moderate{background:#fef5d0;color:var(--amber)}
 .pct-badge.normal  {background:#e6f7ee;color:var(--green)}
 
-/* Values row — stacked vertically to save horizontal space */
-.metric-values{display:grid;grid-template-columns:1fr 1fr;gap:.15rem .4rem}
+.metric-values{display:grid;grid-template-columns:1fr 1fr;gap:.2rem .5rem}
 .mv-item{display:flex;flex-direction:column;gap:0}
-.mv-label{font-size:.6rem;color:var(--gray);white-space:nowrap}
-.mv-val{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-label{font-size:.62rem;color:var(--gray)}
+.mv-val{font-weight:700;font-size:.85rem}
 .mv-val.enacted{color:var(--red)}
-/* Range spans full width */
 .mv-item.full{grid-column:span 2}
-.mv-val.range{font-size:.72rem;font-weight:600}
+.mv-val.range{font-size:.76rem;font-weight:600}
 
-.chart-wrap{height:70px;position:relative}
-
-/* Collapsible interpretation text */
-.metric-detail{font-size:.72rem;color:#444;line-height:1.4}
-.detail-toggle{
-  font-size:.75rem;color:var(--blue);cursor:pointer;
-  background:none;border:none;padding:0;text-decoration:none;
-  display:inline-flex;align-items:center;gap:.25rem;font-weight:600;
-}
-.detail-toggle:hover{opacity:.8;text-decoration:underline}
-.detail-body{display:none;border-top:1px solid var(--border);padding-top:.4rem;margin-top:.4rem}
-.detail-body.open{display:block}
+.chart-wrap{height:100px;position:relative}
+@media(max-width:860px){.chart-wrap{height:70px}}
 
 /* ── Popover (info panel) ── */
 .popover-backdrop{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.25)}
@@ -454,12 +439,7 @@ function closePopover() {
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closePopover(); });
 
-function toggleAllDetails(btn) {
-  const bodies = document.querySelectorAll('.detail-body');
-  const anyOpen = [...bodies].some(el => el.classList.contains('open'));
-  bodies.forEach(el => el.classList.toggle('open', !anyOpen));
-  btn.textContent = anyOpen ? '▸ Explain all metrics' : '▾ Hide explanations';
-}
+// (no collapse toggles — descriptions are always visible)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const pctClass = p => p<=5||p>=95 ? 'outlier' : (p<=10||p>=90 ? 'moderate' : 'normal');
@@ -545,26 +525,44 @@ async function renderMetrics(chamber) {
     const meta = METRICS[metric];
     const cls = pctClass(d.percentile_rank);
     const canvasId = `chart-${chamber}-${metric}`;
-    const detailId = `detail-${chamber}-${metric}`;
     d.ensemble_size = enacted.ensemble_size;
     const interpText = meta.interpret(d, chamber);
+    const pop = meta.popover || {};
+    const bulletHtml = (pop.interpret||[]).map(b=>`<li style="margin-bottom:.22rem">${b}</li>`).join('');
     return `
     <div class="metric-card${d.is_outlier?' is-outlier':''}">
-      <div class="metric-header">
-        <span class="metric-name">
-          ${meta.label}<button class="info-sup" onclick="openPopover('${metric}','${chamber}',window._comp?.['${metric}'])" title="Full methodology">ℹ</button>
-        </span>
-        <span class="pct-badge ${cls}">${d.percentile_rank.toFixed(0)}th</span>
+
+      <!-- LEFT: name + numbers -->
+      <div class="metric-left">
+        <div class="metric-header">
+          <span class="metric-name">${meta.label}<button class="info-sup" onclick="openPopover('${metric}','${chamber}',window._comp?.['${metric}'])" title="Full methodology">ℹ</button></span>
+          <span class="pct-badge ${cls}">${d.percentile_rank.toFixed(0)}th&nbsp;pct</span>
+        </div>
+        <div class="metric-values">
+          <div class="mv-item"><span class="mv-label">Enacted</span><span class="mv-val enacted">${meta.format(d.enacted_value)}</span></div>
+          <div class="mv-item"><span class="mv-label">Neutral median</span><span class="mv-val">${meta.format(d.ensemble_median)}</span></div>
+          <div class="mv-item full"><span class="mv-label">Normal range (5–95%)</span><span class="mv-val range">${meta.format(d.ensemble_p5)} – ${meta.format(d.ensemble_p95)}</span></div>
+        </div>
       </div>
-      <div class="metric-values">
-        <div class="mv-item"><span class="mv-label">Enacted</span><span class="mv-val enacted">${meta.format(d.enacted_value)}</span></div>
-        <div class="mv-item"><span class="mv-label">Neutral median</span><span class="mv-val">${meta.format(d.ensemble_median)}</span></div>
-        <div class="mv-item full"><span class="mv-label">Normal range (5–95%)</span><span class="mv-val range">${meta.format(d.ensemble_p5)} – ${meta.format(d.ensemble_p95)}</span></div>
+
+      <!-- MIDDLE: histogram -->
+      <div class="metric-mid">
+        <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
+        <div style="font-size:.6rem;color:var(--gray);text-align:center">
+          ${(d.ensemble_size||'').toLocaleString()} neutral maps &nbsp;·&nbsp; <span style="color:var(--red);font-weight:700">|</span> = enacted
+        </div>
       </div>
-      <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
-      <div class="metric-detail">
-        <div class="detail-body" id="${detailId}">${interpText}</div>
+
+      <!-- RIGHT: always-visible explanation -->
+      <div class="metric-right">
+        <div class="interp-box">${interpText}</div>
+        <div style="font-size:.79rem;color:#444;line-height:1.55">
+          ${pop.what ? `<p style="margin-bottom:.3rem"><strong>What it measures:</strong> ${pop.what}</p>` : ''}
+          ${bulletHtml ? `<ul style="padding-left:1.1rem;margin:.1rem 0">${bulletHtml}</ul>` : ''}
+          ${pop.caveat ? `<p style="font-size:.73rem;color:var(--gray);margin-top:.35rem"><em>Note: ${pop.caveat}</em></p>` : ''}
+        </div>
       </div>
+
     </div>`;
   }).join('');
 
@@ -572,10 +570,7 @@ async function renderMetrics(chamber) {
     <div class="verdict ${vClass}">
       <div class="verdict-icon">${vIcon}</div>
       <div><h2>${vTitle}</h2>
-      <p>${vText} Comparing ${ndist} enacted ${label} districts to ${enacted.ensemble_size.toLocaleString()} neutral maps. Hover any metric card for ℹ full methodology · use <em>Explain all metrics</em> to show interpretations.</p></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:.35rem">
-      <button class="detail-toggle" id="explain-all-btn" onclick="toggleAllDetails(this)" style="font-size:.78rem;opacity:.85;padding:.2rem 0">▸ Explain all metrics</button>
+      <p>${vText} Comparing ${ndist} enacted ${label} districts to ${enacted.ensemble_size.toLocaleString()} neutral maps. Each row shows the numbers, distribution, and interpretation. Click ℹ on any metric for full methodology.</p></div>
     </div>
     <div class="metric-strip">${cards}</div>
     <div style="background:var(--card);border-radius:8px;padding:.6rem .9rem;box-shadow:var(--shadow);font-size:.75rem;color:#666;line-height:1.55">

@@ -99,14 +99,14 @@ main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
 .chart-wrap{height:70px;position:relative}
 
 /* Collapsible interpretation text */
-.metric-detail{font-size:.72rem;color:#444;line-height:1.4;border-top:1px solid var(--border);padding-top:.3rem;margin-top:.1rem}
+.metric-detail{font-size:.72rem;color:#444;line-height:1.4}
 .detail-toggle{
-  font-size:.66rem;color:var(--blue);cursor:pointer;
+  font-size:.75rem;color:var(--blue);cursor:pointer;
   background:none;border:none;padding:0;text-decoration:none;
-  display:inline-flex;align-items:center;gap:.2rem;opacity:.7;
+  display:inline-flex;align-items:center;gap:.25rem;font-weight:600;
 }
-.detail-toggle:hover{opacity:1}
-.detail-body{display:none;margin-top:.25rem}
+.detail-toggle:hover{opacity:.8;text-decoration:underline}
+.detail-body{display:none;border-top:1px solid var(--border);padding-top:.4rem;margin-top:.4rem}
 .detail-body.open{display:block}
 
 /* ── Popover (info panel) ── */
@@ -454,11 +454,11 @@ function closePopover() {
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closePopover(); });
 
-function toggleDetail(id, btn) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const open = el.classList.toggle('open');
-  btn.textContent = (open ? '▾ ' : '▸ ') + 'what does this mean?';
+function toggleAllDetails(btn) {
+  const bodies = document.querySelectorAll('.detail-body');
+  const anyOpen = [...bodies].some(el => el.classList.contains('open'));
+  bodies.forEach(el => el.classList.toggle('open', !anyOpen));
+  btn.textContent = anyOpen ? '▸ Explain all metrics' : '▾ Hide explanations';
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -563,7 +563,6 @@ async function renderMetrics(chamber) {
       </div>
       <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
       <div class="metric-detail">
-        <button class="detail-toggle" onclick="toggleDetail('${detailId}',this)">▸ what does this mean?</button>
         <div class="detail-body" id="${detailId}">${interpText}</div>
       </div>
     </div>`;
@@ -573,7 +572,10 @@ async function renderMetrics(chamber) {
     <div class="verdict ${vClass}">
       <div class="verdict-icon">${vIcon}</div>
       <div><h2>${vTitle}</h2>
-      <p>${vText} Comparing ${ndist} enacted ${label} districts to ${enacted.ensemble_size.toLocaleString()} neutral maps. Hover any metric for ℹ · click <em>what does this mean?</em> for interpretation.</p></div>
+      <p>${vText} Comparing ${ndist} enacted ${label} districts to ${enacted.ensemble_size.toLocaleString()} neutral maps. Hover any metric card for ℹ full methodology · use <em>Explain all metrics</em> to show interpretations.</p></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.35rem">
+      <button class="detail-toggle" id="explain-all-btn" onclick="toggleAllDetails(this)" style="font-size:.78rem;opacity:.85;padding:.2rem 0">▸ Explain all metrics</button>
     </div>
     <div class="metric-strip">${cards}</div>
     <div style="background:var(--card);border-radius:8px;padding:.6rem .9rem;box-shadow:var(--shadow);font-size:.75rem;color:#666;line-height:1.55">

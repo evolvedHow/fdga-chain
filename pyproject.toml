@@ -1,0 +1,18 @@
+[project]
+name = "fdga-chain"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.135.3",
+    "fiona>=1.10.1",
+    "geopandas>=1.1.3",
+    "gerrychain>=0.3.2",
+    "pandas>=3.0.2",
+    "pyarrow>=23.0.1",
+    "pyproj>=3.7.2",
+    "python-dotenv>=1.2.2",
+    "shapely>=2.1.2",
+    "uvicorn[standard]>=0.44.0",
+]

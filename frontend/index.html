@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Georgia Redistricting Ensemble Analysis — Fair Districts GA</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --blue:  #1a4b8c; --red: #c0392b; --green: #27ae60; --amber: #d68910; --gray: #555;
+  --light: #f5f7fa; --border: #dde3ec; --card: #fff; --shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--light);color:#222;overflow-x:hidden}
+
+/* Header */
+header{background:var(--blue);color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.3rem;font-weight:700}
+header p{font-size:.82rem;opacity:.8;margin-top:.15rem}
+
+/* Nav */
+.nav-bar{background:#fff;border-bottom:2px solid var(--border);padding:0 2rem;display:flex;gap:0;align-items:center;flex-wrap:wrap}
+.nav-label{font-size:.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;margin-right:.6rem;white-space:nowrap}
+.nav-tabs{display:flex;gap:0}
+.nav-tab{padding:.65rem 1rem;font-weight:600;font-size:.85rem;cursor:pointer;border-bottom:3px solid transparent;color:var(--gray);white-space:nowrap;transition:all .15s;user-select:none}
+.nav-tab:hover:not(.disabled){color:var(--blue);background:#f0f4fb}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.nav-tab.disabled{opacity:.4;cursor:not-allowed}
+.nav-sep{width:1px;background:var(--border);margin:.3rem .6rem;align-self:stretch}
+
+main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
+@media(min-width:1300px){main{max-width:1280px;margin:1rem auto}}
+
+/* Verdict */
+.verdict{border-radius:8px;padding:.7rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.7rem;box-shadow:var(--shadow)}
+.verdict.outlier {background:#fef0f0;border:1.5px solid #f5a9a9}
+.verdict.moderate{background:#fefae0;border:1.5px solid #f0d070}
+.verdict.normal  {background:#eefaf3;border:1.5px solid #a9dbc0}
+.verdict-icon{font-size:1.4rem;flex-shrink:0}
+.verdict h2{font-size:.92rem;margin-bottom:.1rem}
+.verdict p{font-size:.78rem;color:var(--gray)}
+
+/* ── Single-row metric strip ── */
+.metric-strip{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:.55rem;
+  margin-bottom:1rem;
+  width:100%;
+}
+/* Portrait tablet: 3 columns */
+@media(max-width:880px){.metric-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Portrait phone: 2 columns */
+@media(max-width:520px){.metric-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.metric-card{
+  background:var(--card);border-radius:8px;padding:.65rem .7rem;
+  box-shadow:var(--shadow);border:1.5px solid var(--border);
+  display:flex;flex-direction:column;gap:.3rem;
+  min-width:0;overflow:hidden;   /* prevent blowout */
+}
+.metric-card.is-outlier{border-color:#f5a9a9}
+
+.metric-header{display:flex;justify-content:space-between;align-items:flex-start;gap:.25rem;min-width:0}
+.metric-name{
+  font-weight:700;font-size:.75rem;color:var(--blue);
+  line-height:1.2;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.metric-card.is-outlier .metric-name{color:var(--red)}
+
+/* Tiny superscript info — only visible on hover of the card */
+.info-sup{
+  font-size:.6rem;color:var(--blue);cursor:pointer;
+  opacity:0;transition:opacity .15s;
+  text-decoration:none;vertical-align:super;margin-left:1px;
+  border:none;background:none;padding:0;line-height:1;
+}
+.metric-card:hover .info-sup{opacity:.6}
+.info-sup:hover{opacity:1 !important;text-decoration:underline}
+
+.pct-badge{font-size:.65rem;font-weight:700;padding:.12rem .38rem;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.pct-badge.outlier {background:#fde8e8;color:var(--red)}
+.pct-badge.moderate{background:#fef5d0;color:var(--amber)}
+.pct-badge.normal  {background:#e6f7ee;color:var(--green)}
+
+/* Values row — stacked vertically to save horizontal space */
+.metric-values{display:grid;grid-template-columns:1fr 1fr;gap:.15rem .4rem}
+.mv-item{display:flex;flex-direction:column;gap:0}
+.mv-label{font-size:.6rem;color:var(--gray);white-space:nowrap}
+.mv-val{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-val.enacted{color:var(--red)}
+/* Range spans full width */
+.mv-item.full{grid-column:span 2}
+.mv-val.range{font-size:.72rem;font-weight:600}
+
+.chart-wrap{height:70px;position:relative}
+
+/* Collapsible interpretation text */
+.metric-detail{font-size:.72rem;color:#444;line-height:1.4;border-top:1px solid var(--border);padding-top:.3rem;margin-top:.1rem}
+.detail-toggle{
+  font-size:.66rem;color:var(--blue);cursor:pointer;
+  background:none;border:none;padding:0;text-decoration:none;
+  display:inline-flex;align-items:center;gap:.2rem;opacity:.7;
+}
+.detail-toggle:hover{opacity:1}
+.detail-body{display:none;margin-top:.25rem}
+.detail-body.open{display:block}
+
+/* ── Popover (info panel) ── */
+.popover-backdrop{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.25)}
+.popover-backdrop.open{display:block}
+.popover{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);width:min(540px,92vw);max-height:85vh;overflow-y:auto}
+.popover-head{background:var(--blue);color:#fff;padding:1rem 1.2rem;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
+.popover-head h3{font-size:1rem;font-weight:700}
+.popover-close{background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1;padding:.1rem .3rem}
+.popover-body{padding:1.1rem 1.2rem;font-size:.88rem;line-height:1.65;color:#333}
+.popover-body h4{color:var(--blue);margin-top:.9rem;margin-bottom:.3rem;font-size:.88rem;text-transform:uppercase;letter-spacing:.04em}
+.popover-body p{margin-bottom:.5rem}
+.popover-body ul{padding-left:1.1rem}
+.popover-body li{margin-bottom:.3rem}
+.interp-box{background:var(--light);border-left:3px solid var(--blue);padding:.6rem .8rem;border-radius:0 6px 6px 0;margin-top:.5rem;font-size:.83rem}
+
+/* Map */
+.map-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem}
+.map-controls{background:var(--card);border-radius:10px;padding:1rem;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:.7rem}
+.map-controls h3{font-size:.88rem;font-weight:700;color:var(--blue);border-bottom:1px solid var(--border);padding-bottom:.35rem}
+.map-controls label{display:block;font-size:.76rem;font-weight:600;color:var(--gray);margin-bottom:.25rem}
+.map-controls select,.map-controls button{width:100%;font-size:.83rem;padding:.38rem .55rem;border-radius:6px;border:1px solid var(--border)}
+.map-controls button{background:var(--blue);color:#fff;border-color:var(--blue);cursor:pointer;font-weight:600}
+.map-controls button:hover{background:#163e78}
+.map-container{background:var(--card);border-radius:10px;box-shadow:var(--shadow);overflow:hidden;height:540px}
+#leaflet-map{height:100%;width:100%}
+.map-legend{margin-top:.4rem}
+.legend-title{font-size:.73rem;font-weight:700;color:var(--gray);margin-bottom:.25rem}
+.legend-bar{display:flex;height:10px;border-radius:4px;overflow:hidden;margin-bottom:.15rem}
+.legend-labels{display:flex;justify-content:space-between;font-size:.67rem;color:var(--gray)}
+.map-info{font-size:.75rem;color:var(--gray);line-height:1.5;margin-top:.35rem}
+
+/* Run panel */
+.run-panel{background:var(--card);border-radius:10px;padding:1.1rem 1.3rem;box-shadow:var(--shadow);border:1.5px solid var(--border);margin-bottom:1.2rem}
+.run-panel h3{font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.8rem}
+.run-form{display:flex;gap:.8rem;align-items:flex-end;flex-wrap:wrap}
+.run-form .field{display:flex;flex-direction:column;gap:.2rem}
+.run-form label{font-size:.75rem;font-weight:600;color:var(--gray)}
+.run-form select,.run-form input{font-size:.85rem;padding:.38rem .55rem;border-radius:6px;border:1px solid var(--border);min-width:130px}
+.run-btn{background:var(--blue);color:#fff;border:none;padding:.45rem 1.1rem;border-radius:6px;font-weight:700;font-size:.85rem;cursor:pointer}
+.run-btn:hover{background:#163e78}
+.run-btn:disabled{opacity:.5;cursor:not-allowed}
+.run-status{font-size:.8rem;padding:.3rem .7rem;border-radius:6px;display:inline-flex;align-items:center;gap:.4rem}
+.run-status.running{background:#e8f0fb;color:var(--blue)}
+.run-status.done   {background:#eefaf3;color:var(--green)}
+.run-status.error  {background:#fef0f0;color:var(--red)}
+
+/* Algo picker */
+.algo-cards{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.3rem}
+.algo-card{border:2px solid var(--border);border-radius:8px;padding:.6rem .8rem;cursor:pointer;flex:1;min-width:200px;transition:all .15s}
+.algo-card:hover{border-color:var(--blue);background:#f0f4fb}
+.algo-card.selected{border-color:var(--blue);background:#e8f0fb}
+.algo-card-name{font-weight:700;font-size:.85rem;color:var(--blue);margin-bottom:.2rem}
+.algo-card-speed{font-size:.72rem;font-weight:700;padding:.1rem .4rem;border-radius:10px;display:inline-block;margin-bottom:.3rem}
+.algo-card-speed.fast  {background:#e6f7ee;color:var(--green)}
+.algo-card-speed.slower{background:#fef5d0;color:var(--amber)}
+.algo-card-desc{font-size:.78rem;color:var(--gray);line-height:1.5}
+.algo-card-best{font-size:.73rem;color:#444;margin-top:.25rem;font-style:italic}
+
+/* Run history */
+.run-history table{width:100%;border-collapse:collapse;font-size:.8rem}
+.run-history th{text-align:left;font-size:.69rem;font-weight:700;color:var(--gray);text-transform:uppercase;padding:.25rem .55rem;border-bottom:1px solid var(--border)}
+.run-history td{padding:.3rem .55rem;border-bottom:1px solid var(--border)}
+
+/* Sources */
+.sources-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:700px){.sources-grid{grid-template-columns:1fr}}
+.info-card{background:var(--card);border-radius:10px;padding:1.1rem;box-shadow:var(--shadow)}
+.info-card h3{font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.6rem}
+.info-card p,.info-card li{font-size:.83rem;color:#444;line-height:1.6}
+.info-card ul{padding-left:1.1rem}
+.info-card li{margin-bottom:.3rem}
+.info-card a{color:var(--blue)}
+.run-meta-table{width:100%;border-collapse:collapse;font-size:.81rem}
+.run-meta-table tr:not(:last-child) td{border-bottom:1px solid var(--border)}
+.run-meta-table td{padding:.3rem 0}
+.run-meta-table td:first-child{color:var(--gray);width:44%;font-weight:600}
+
+/* Shared */
+.loading{text-align:center;padding:3rem;color:var(--gray)}
+.error{background:#fef0f0;border:1px solid #f5a9a9;border-radius:8px;padding:1rem;color:var(--red);font-size:.85rem}
+.section-title{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:.7rem}
+footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Georgia Redistricting Ensemble Analysis</h1>
+    <p>Comparing enacted maps against thousands of computer-generated neutral maps · Fair Districts Georgia</p>
+  </div>
+</header>
+
+<div class="nav-bar" id="nav-bar">
+  <span class="nav-label">Chamber:</span>
+  <div class="nav-tabs" id="chamber-tabs"></div>
+  <div class="nav-sep"></div>
+  <span class="nav-label">View:</span>
+  <div class="nav-tabs" id="view-tabs">
+    <div class="nav-tab active" data-view="metrics">Metrics</div>
+    <div class="nav-tab" data-view="map">Map</div>
+    <div class="nav-tab" data-view="run">Run Analysis</div>
+    <div class="nav-tab" data-view="sources">Sources &amp; Config</div>
+  </div>
+</div>
+
+<!-- Global info popover -->
+<div class="popover-backdrop" id="popover-backdrop" onclick="closePopover()">
+  <div class="popover" id="popover" onclick="event.stopPropagation()">
+    <div class="popover-head">
+      <h3 id="popover-title">About this metric</h3>
+      <button class="popover-close" onclick="closePopover()">✕</button>
+    </div>
+    <div class="popover-body" id="popover-body"></div>
+  </div>
+</div>
+
+<main id="main"><div class="loading">Loading…</div></main>
+
+<script>
+const API = '';
+let activeView = 'metrics';
+let activeChamber = null;
+let availableChambers = [];
+let chartInstances = {};
+let leafletMap = null;
+let districtLayer = null;
+let stabilityLayer = null;
+let runPollTimer = null;
+let infoCache = null;
+let algoInfo = {};
+let chamberMetas = {};
+
+// ── Metric definitions with full educational content ──────────────────────
+const METRICS = {
+  dem_seats: {
+    label: 'Democratic Seats',
+    shortLabel: 'Dem Seats',
+    format: v => Math.round(v).toString(),
+    unit: 'seats',
+    interpret: (d, chamber) => {
+      const diff = d.enacted_value - d.ensemble_median;
+      const ndist = {house:180,senate:56,congress:14}[chamber]||'';
+      return diff < -0.4
+        ? `Democrats win <strong>${Math.abs(diff).toFixed(0)} fewer seats</strong> than the median neutral map would produce.`
+        : diff > 0.4
+        ? `Democrats win <strong>${diff.toFixed(0)} more seats</strong> than the median neutral map.`
+        : `Democratic seat share matches what neutral maps typically produce.`;
+    },
+    popover: {
+      what: `Counts how many of the <em>N</em> districts Democrats would win based on 2020 Presidential vote totals assigned to each district.`,
+      how: `For each step of the Markov chain, we tally which districts have more Democratic than Republican votes. The histogram shows how many neutral maps produce each seat count.`,
+      interpret: [
+        `If the enacted map is at the <strong>low end</strong> (low percentile), it gives Democrats fewer seats than chance-drawn maps would — a sign of packing or cracking Democratic voters.`,
+        `If at the <strong>high end</strong>, Republicans are disadvantaged.`,
+        `The 5th–95th percentile range is the "normal zone." Outside that zone = statistically unusual.`,
+      ],
+      caveat: `Seat predictions use 2020 Presidential results as a proxy for partisan lean. Actual outcomes vary by year and candidate.`,
+    },
+  },
+  efficiency_gap: {
+    label: 'Efficiency Gap',
+    shortLabel: 'Eff. Gap',
+    format: v => (v*100).toFixed(1)+'%',
+    unit: '%',
+    interpret: (d) => {
+      const v = d.enacted_value;
+      if (v > 0.08) return `This map wastes <strong>${(v*100).toFixed(1)}% more Democratic votes</strong> than Republican votes — a strong Republican advantage.`;
+      if (v < -0.08) return `This map wastes <strong>${(Math.abs(v)*100).toFixed(1)}% more Republican votes</strong> — a Democratic advantage.`;
+      return `Efficiency gap is within the ±8% competitive range.`;
+    },
+    popover: {
+      what: `Measures which party's votes are "wasted" more. A wasted vote is either cast for a losing candidate (all wasted) or cast beyond what's needed to win (the excess margin). The efficiency gap is the difference in wasted votes between parties, as a fraction of total votes.`,
+      how: `For each neutral map, we compute: (Dem wasted votes − Rep wasted votes) / total votes. Positive = more Dem waste = Republican advantage.`,
+      interpret: [
+        `<strong>±0–5%</strong>: Highly competitive, roughly balanced.`,
+        `<strong>±5–8%</strong>: Mild partisan lean, within normal variation.`,
+        `<strong>Above ±8%</strong>: Flagged in academic literature as potentially problematic.`,
+        `A map at the 95th+ percentile means almost no neutral map wastes Democratic votes this much more than Republican votes.`,
+      ],
+      caveat: `Efficiency gap varies with electoral conditions. A gap under a specific map may appear large in wave elections and small in stable ones.`,
+      reference: `Stephanopoulos & McGhee (2015), <em>Partisan Gerrymandering and the Efficiency Gap</em>.`,
+    },
+  },
+  mean_median: {
+    label: 'Mean–Median',
+    shortLabel: 'Mean–Med',
+    format: v => (v*100).toFixed(1)+'%',
+    unit: '%',
+    interpret: (d) => {
+      const v = d.enacted_value;
+      if (v > 0.04) return `<strong>Democratic votes are systematically spread</strong> across districts more than Republicans — a sign of vote cracking.`;
+      if (v < -0.04) return `Republican votes are more spread than Democratic votes across districts.`;
+      return `Vote distribution is roughly symmetric across districts.`;
+    },
+    popover: {
+      what: `Compares a party's <em>mean</em> vote share across all districts to its <em>median</em> vote share (the district right in the middle). If these differ significantly, it means the party's support is distributed unevenly — some districts have many more Democratic votes than needed to win, while others are just barely lost.`,
+      how: `We compute: (average Dem vote share across districts) minus (median Dem vote share). A large positive gap means Democrats over-perform in some districts and under-perform in many others.`,
+      interpret: [
+        `<strong>Near 0</strong>: Symmetric distribution — neither party is systematically disadvantaged.`,
+        `<strong>Large positive</strong>: Democrats are "packed" into a few high-margin districts and "cracked" across many marginal ones.`,
+        `<strong>Large negative</strong>: Republicans face the same disadvantage.`,
+        `This is one of the most reliable gerrymandering indicators because it captures systematic patterns, not just seat counts.`,
+      ],
+      reference: `Bernstein & Duchin (2017), <em>A Formula Goes to Court</em>.`,
+    },
+  },
+  polsby_popper_mean: {
+    label: 'Compactness',
+    shortLabel: 'Compactness',
+    format: v => v.toFixed(3),
+    unit: 'PP score',
+    interpret: (d) => {
+      const v = d.enacted_value;
+      const p = d.percentile_rank;
+      return p > 90
+        ? `Districts are <strong>more compact than usual</strong> — but compactness alone doesn't indicate fairness.`
+        : p < 10
+        ? `Districts are <strong>less compact than typical neutral maps</strong> — more irregular shapes.`
+        : `District compactness is within the normal range.`;
+    },
+    popover: {
+      what: `The Polsby-Popper score measures how "round" each district is: area divided by the area of a circle with the same perimeter. A score of 1.0 is a perfect circle; most real districts score 0.1–0.4.`,
+      how: `We average the Polsby-Popper score across all districts. GerryChain uses actual district geometries from the enacted shapefile to compute this for each neutral map.`,
+      interpret: [
+        `<strong>High score (near 1.0)</strong>: Compact, round districts.`,
+        `<strong>Low score</strong>: Irregular, elongated, or oddly-shaped districts.`,
+        `<strong>Important caveat</strong>: Compactness is a weak gerrymandering indicator on its own. A gerrymander can have compact districts (packing communities) or irregular districts for legitimate reasons (following county lines, rivers, or communities of interest).`,
+        `Use this metric alongside vote-based measures, not as a standalone indicator.`,
+      ],
+    },
+  },
+  num_cut_edges: {
+    label: 'Boundary Fragmentation',
+    shortLabel: 'Fragmentation',
+    format: v => Math.round(v).toLocaleString(),
+    unit: 'split edges',
+    interpret: (d) => {
+      const p = d.percentile_rank;
+      return p > 95
+        ? `The enacted map <strong>splits more precinct boundaries</strong> than nearly all neutral maps — a sign of fine-grained boundary manipulation.`
+        : p < 5
+        ? `The enacted map splits fewer boundaries than typical, suggesting larger, coarser-grained districts.`
+        : `Boundary fragmentation is within the normal range.`;
+    },
+    popover: {
+      what: `Counts the number of "cut edges" — precinct-to-precinct adjacency connections that are severed because the two precincts end up in different districts. More cuts mean finer-grained control over who is assigned where.`,
+      how: `Each precinct is a node in a graph; edges connect neighboring precincts. A cut edge is one where the two connected precincts are in different districts. Neutral maps tend to cluster precincts into large, contiguous blocks with fewer cuts. Gerrymandered maps often need many more cuts to achieve partisan targets.`,
+      interpret: [
+        `<strong>High percentile</strong>: The enacted map requires many more boundary splits than neutral maps — a sign that the mapmaker was carefully managing which specific precincts ended up in which districts.`,
+        `<strong>Low percentile</strong>: Fewer splits than typical — districts are formed from larger, coarser geographic blocks.`,
+        `This is a structural measure, not directly a partisan fairness measure, but systematic over-cutting is associated with intentional boundary manipulation.`,
+      ],
+    },
+  },
+};
+
+const DISPLAY_ORDER = ['dem_seats','efficiency_gap','mean_median','polsby_popper_mean','num_cut_edges'];
+
+// ── Popover ─────────────────────────────────────────────────────────────────
+function openPopover(metricKey, chamber, compData) {
+  const meta = METRICS[metricKey];
+  if (!meta) return;
+  const info = meta.popover;
+  const d = compData;
+
+  let html = `<h4>What it measures</h4><p>${info.what}</p>`;
+  html += `<h4>How it's calculated</h4><p>${info.how}</p>`;
+  html += `<h4>How to interpret</h4><ul>${info.interpret.map(i=>`<li>${i}</li>`).join('')}</ul>`;
+  if (info.caveat) html += `<h4>Important caveat</h4><p>${info.caveat}</p>`;
+  if (info.reference) html += `<h4>Reference</h4><p>${info.reference}</p>`;
+
+  if (d) {
+    const pct = d.percentile_rank;
+    const cls = pctClass(pct);
+    const interpretation = meta.interpret(d, chamber);
+    html += `<h4>For the ${chamber} chamber</h4>
+    <div class="interp-box">
+      <strong>Enacted value:</strong> ${meta.format(d.enacted_value)} — at the <strong>${pct.toFixed(0)}th percentile</strong> of ${d.ensemble_size||''}+ neutral maps.<br>
+      <strong>Neutral median:</strong> ${meta.format(d.ensemble_median)} &nbsp;|&nbsp; <strong>Normal range (5–95%):</strong> ${meta.format(d.ensemble_p5)} – ${meta.format(d.ensemble_p95)}<br><br>
+      ${interpretation}
+    </div>`;
+  }
+
+  document.getElementById('popover-title').textContent = meta.label;
+  document.getElementById('popover-body').innerHTML = html;
+  document.getElementById('popover-backdrop').classList.add('open');
+}
+
+function closePopover() {
+  document.getElementById('popover-backdrop').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closePopover(); });
+
+function toggleDetail(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = (open ? '▾ ' : '▸ ') + 'what does this mean?';
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const pctClass = p => p<=5||p>=95 ? 'outlier' : (p<=10||p>=90 ? 'moderate' : 'normal');
+
+function districtColor(id, total) {
+  const h = (parseInt(id) * (360/total)) % 360;
+  return `hsl(${h},55%,52%)`;
+}
+function stabilityColor(v) {
+  if (v==null) return '#ccc';
+  const r = Math.round(220*(1-v)), g = Math.round(180*v+40);
+  return `rgb(${r},${g},60)`;
+}
+
+// ── Chart.js histogram ────────────────────────────────────────────────────────
+function buildChart(canvasId, histogram, enactedValue, metric) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  const { bin_edges: edges, counts } = histogram;
+  const fmt = METRICS[metric]?.format;
+  const labels = counts.map((_,i) => fmt ? fmt((edges[i]+edges[i+1])/2) : '');
+  const colors = counts.map((_,i) =>
+    (enactedValue>=edges[i] && enactedValue<edges[i+1]) ? 'rgba(192,57,43,.85)' : 'rgba(26,75,140,.48)'
+  );
+  const linePlugin = {
+    id:'eLine',
+    afterDraw(chart) {
+      const {ctx:c,chartArea:{top,bottom},scales:{x}} = chart;
+      const xPx = x.left + (enactedValue-edges[0])/(edges[edges.length-1]-edges[0])*(x.right-x.left);
+      c.save(); c.strokeStyle='rgba(192,57,43,.9)'; c.lineWidth=2; c.setLineDash([4,3]);
+      c.beginPath(); c.moveTo(xPx,top); c.lineTo(xPx,bottom); c.stroke(); c.restore();
+    }
+  };
+  chartInstances[canvasId] = new Chart(ctx, {
+    type:'bar',
+    data:{labels,datasets:[{data:counts,backgroundColor:colors,borderWidth:0,borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:items=>`~${labels[items[0].dataIndex]}`,
+        label:i=>`${i.raw.toLocaleString()} neutral maps`
+      }}},
+      scales:{x:{display:false},y:{display:false}},animation:{duration:200}},
+    plugins:[linePlugin],
+  });
+}
+
+// ── Metrics view ──────────────────────────────────────────────────────────────
+async function renderMetrics(chamber) {
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="loading">Loading ensemble data…</div>';
+  let enacted, histograms;
+  try {
+    [enacted, ...histograms] = await Promise.all([
+      fetch(`${API}/api/ensemble/${chamber}/enacted`).then(r=>r.json()),
+      ...DISPLAY_ORDER.map(m=>fetch(`${API}/api/ensemble/${chamber}/histogram?metric=${m}&bins=40`).then(r=>r.json())),
+    ]);
+  } catch(e) { main.innerHTML=`<div class="error">${e.message}</div>`; return; }
+
+  const hists={};
+  DISPLAY_ORDER.forEach((m,i) => hists[m]=histograms[i]);
+  const comp = enacted.comparison;
+  const nOut = DISPLAY_ORDER.filter(m=>comp[m]?.is_outlier).length;
+  const n = DISPLAY_ORDER.filter(m=>comp[m]).length;
+  const label = {house:'House',senate:'Senate',congress:'Congressional'}[chamber];
+  const ndist = {house:180,senate:56,congress:14}[chamber];
+
+  const vClass = nOut>=3?'outlier':nOut>=1?'moderate':'normal';
+  const vIcon  = nOut>=3?'⚠️':nOut>=1?'⚡':'✓';
+  const vTitle = nOut>=3
+    ? `The enacted ${label} map is a statistical outlier on ${nOut} of ${n} key measures.`
+    : nOut>=1
+    ? `The enacted ${label} map shows outlier behavior on ${nOut} of ${n} measures.`
+    : `The enacted ${label} map is within the normal range on all measures.`;
+  const vText = nOut>=3
+    ? `Across ${enacted.ensemble_size.toLocaleString()} computer-drawn neutral maps, the enacted map falls in the extreme tail on most fairness indicators. This is statistically unusual.`
+    : nOut>=1
+    ? `Most metrics are within normal range; one or more fall in the statistically unusual zone.`
+    : `All metrics fall within what neutral maps typically produce.`;
+
+  const cards = DISPLAY_ORDER.filter(m=>comp[m]).map(metric => {
+    const d = comp[metric];
+    const meta = METRICS[metric];
+    const cls = pctClass(d.percentile_rank);
+    const canvasId = `chart-${chamber}-${metric}`;
+    const detailId = `detail-${chamber}-${metric}`;
+    d.ensemble_size = enacted.ensemble_size;
+    const interpText = meta.interpret(d, chamber);
+    return `
+    <div class="metric-card${d.is_outlier?' is-outlier':''}">
+      <div class="metric-header">
+        <span class="metric-name">
+          ${meta.label}<button class="info-sup" onclick="openPopover('${metric}','${chamber}',window._comp?.['${metric}'])" title="Full methodology">ℹ</button>
+        </span>
+        <span class="pct-badge ${cls}">${d.percentile_rank.toFixed(0)}th</span>
+      </div>
+      <div class="metric-values">
+        <div class="mv-item"><span class="mv-label">Enacted</span><span class="mv-val enacted">${meta.format(d.enacted_value)}</span></div>
+        <div class="mv-item"><span class="mv-label">Neutral median</span><span class="mv-val">${meta.format(d.ensemble_median)}</span></div>
+        <div class="mv-item full"><span class="mv-label">Normal range (5–95%)</span><span class="mv-val range">${meta.format(d.ensemble_p5)} – ${meta.format(d.ensemble_p95)}</span></div>
+      </div>
+      <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
+      <div class="metric-detail">
+        <button class="detail-toggle" onclick="toggleDetail('${detailId}',this)">▸ what does this mean?</button>
+        <div class="detail-body" id="${detailId}">${interpText}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="verdict ${vClass}">
+      <div class="verdict-icon">${vIcon}</div>
+      <div><h2>${vTitle}</h2>
+      <p>${vText} Comparing ${ndist} enacted ${label} districts to ${enacted.ensemble_size.toLocaleString()} neutral maps. Hover any metric for ℹ · click <em>what does this mean?</em> for interpretation.</p></div>
+    </div>
+    <div class="metric-strip">${cards}</div>
+    <div style="background:var(--card);border-radius:8px;padding:.6rem .9rem;box-shadow:var(--shadow);font-size:.75rem;color:#666;line-height:1.55">
+      <span style="color:var(--red);font-weight:700">Red line</span> = enacted map · badge = percentile of neutral maps ·
+      <span style="background:#fde8e8;color:var(--red);padding:.08rem .28rem;border-radius:5px;font-size:.7rem;font-weight:700">&lt;5th or &gt;95th</span> = outlier ·
+      Method: <a href="https://mggg.org/gerrychain/" target="_blank">GerryChain ReCom</a> · Data: <a href="https://redistrictingdatahub.org" target="_blank">RDH</a>
+    </div>`;
+
+  // Store comparison data globally for popover access
+  window._comp = comp;
+
+  requestAnimationFrame(() => {
+    DISPLAY_ORDER.filter(m=>comp[m]).forEach(m => {
+      if (hists[m]?.histogram) buildChart(`chart-${chamber}-${m}`, hists[m].histogram, comp[m].enacted_value, m);
+    });
+  });
+}
+
+// ── Map view ──────────────────────────────────────────────────────────────────
+async function renderMapView(chamber) {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="map-layout">
+      <div class="map-controls">
+        <h3>🗺 Map Layer</h3>
+        <div><label>Display</label>
+          <select id="map-mode-select">
+            <option value="enacted">Enacted Districts</option>
+            <option value="stability">Stability Heatmap</option>
+          </select>
+        </div>
+        <button id="map-load-btn">Load Map</button>
+        <div class="map-legend" id="map-legend" style="display:none">
+          <div class="legend-title" id="legend-title"></div>
+          <div class="legend-bar" id="legend-bar"></div>
+          <div class="legend-labels" id="legend-labels"></div>
+        </div>
+        <p class="map-info" id="map-info"></p>
+      </div>
+      <div class="map-container"><div id="leaflet-map"></div></div>
+    </div>`;
+
+  if (leafletMap) { leafletMap.remove(); leafletMap=null; }
+  leafletMap = L.map('leaflet-map').setView([32.7,-83.5],7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',opacity:.35}).addTo(leafletMap);
+
+  async function loadLayer() {
+    const btn = document.getElementById('map-load-btn');
+    btn.disabled=true; btn.textContent='Loading…';
+    if (districtLayer){leafletMap.removeLayer(districtLayer);districtLayer=null;}
+    if (stabilityLayer){leafletMap.removeLayer(stabilityLayer);stabilityLayer=null;}
+    const mode = document.getElementById('map-mode-select').value;
+    const legend=document.getElementById('map-legend');
+    const info=document.getElementById('map-info');
+    try {
+      if (mode==='enacted') {
+        const geo = await fetch(`${API}/api/maps/${chamber}/enacted`).then(r=>r.json());
+        const total = geo.features.length;
+        districtLayer = L.geoJSON(geo,{
+          style:f=>({fillColor:districtColor(f.properties.DISTRICT,total),fillOpacity:.55,color:'#fff',weight:1.2}),
+          onEachFeature:(f,l)=>{const p=f.properties;l.bindPopup(`<b>District ${p.DISTRICT}</b><br>Population: ${(p.POPULATION||0).toLocaleString()}`)}
+        }).addTo(leafletMap);
+        leafletMap.fitBounds(districtLayer.getBounds(),{padding:[20,20]});
+        legend.style.display='block';
+        document.getElementById('legend-title').textContent='District ID';
+        document.getElementById('legend-bar').innerHTML=Array.from({length:20},(_,i)=>`<div style="flex:1;background:${districtColor(i*total/20,total)}"></div>`).join('');
+        document.getElementById('legend-labels').innerHTML=`<span>District 1</span><span>District ${total}</span>`;
+        info.textContent=`${total} enacted districts. Click any district for population details.`;
+      } else {
+        info.textContent='Loading stability data…';
+        const geo = await fetch(`${API}/api/maps/${chamber}/stability`).then(r=>r.json());
+        if (geo.detail){info.textContent=geo.detail;btn.disabled=false;btn.textContent='Load Map';return;}
+        stabilityLayer = L.geoJSON(geo,{
+          style:f=>({fillColor:stabilityColor(f.properties.stability),fillOpacity:.75,color:'none',weight:0}),
+          onEachFeature:(f,l)=>{const p=f.properties;const pct=p.stability!=null?(p.stability*100).toFixed(0)+'%':'n/a';l.bindPopup(`<b>District ${p.district}</b><br>Stability: ${pct}<br><small>${pct} of neutral maps assign this precinct to the same district</small>`)}
+        }).addTo(leafletMap);
+        leafletMap.fitBounds(stabilityLayer.getBounds(),{padding:[20,20]});
+        legend.style.display='block';
+        document.getElementById('legend-title').textContent='Stability (% of neutral maps matching enacted assignment)';
+        document.getElementById('legend-bar').innerHTML=['#dc3c3c','#c07028','#909020','#40b440','#2a8a2a'].map(c=>`<div style="flex:1;background:${c}"></div>`).join('');
+        document.getElementById('legend-labels').innerHTML=`<span>0% (often redrawn)</span><span>100% (always here)</span>`;
+        info.textContent='🔴 Red = precincts frequently assigned differently in neutral maps (contested boundary). 🟢 Green = stable core areas that stay put regardless of how the map is drawn.';
+      }
+    } catch(e){info.textContent='Error: '+e.message;}
+    btn.disabled=false; btn.textContent='Load Map';
+  }
+  document.getElementById('map-load-btn').addEventListener('click',loadLayer);
+  loadLayer();
+}
+
+// ── Run Analysis view ─────────────────────────────────────────────────────────
+let selectedAlgo = 'recom';
+
+async function renderRunView(chamber) {
+  const main = document.getElementById('main');
+  // Load algo info if not cached
+  if (!Object.keys(algoInfo).length) {
+    try { algoInfo = await fetch(`${API}/api/algorithms`).then(r=>r.json()); } catch(e){}
+  }
+  // Get current chamber meta for pre-population
+  const meta = chamberMetas[chamber] || {};
+
+  const algoCards = Object.entries(algoInfo).map(([key,info]) => `
+    <div class="algo-card ${key===selectedAlgo?'selected':''}" data-algo="${key}" onclick="selectAlgo('${key}')">
+      <div class="algo-card-name">${info.name}</div>
+      <span class="algo-card-speed ${info.speed}">${info.speed}</span>
+      <div class="algo-card-desc">${info.description}</div>
+      <div class="algo-card-best"><strong>Best for:</strong> ${info.best_for}</div>
+    </div>`).join('');
+
+  // Pre-populate from current meta
+  const curSteps   = meta.steps   || 10000;
+  const curEpsilon = meta.epsilon  || 0.07;
+  const curAlgo    = meta.algorithm?.key || 'recom';
+  selectedAlgo = curAlgo;
+
+  const stepOpts = [1000,5000,10000,50000].map(v=>
+    `<option value="${v}" ${v===curSteps?'selected':''}>${v.toLocaleString()} ${v===1000?'(quick ~15s)':v===5000?'(~1 min)':v===10000?'(~2 min)':'(~10 min)'}</option>`).join('');
+  const epsOpts = [[0.05,'5% (strict)'],[0.07,'7% (default)'],[0.10,'10% (legal max)']].map(([v,l])=>
+    `<option value="${v}" ${v===curEpsilon?'selected':''}>${l}</option>`).join('');
+
+  main.innerHTML = `
+    <div class="run-panel">
+      <h3>Run New Ensemble</h3>
+      ${meta.ran_at ? `<p style="font-size:.78rem;color:var(--gray);margin-bottom:.7rem">Current ${chamber} ensemble: <strong>${meta.steps?.toLocaleString()} steps</strong> · ε=${(meta.epsilon*100).toFixed(0)}% · ran ${meta.ran_at?.slice(0,16).replace('T',' ')}</p>` : ''}
+      <div class="run-form" style="margin-bottom:.9rem">
+        <div class="field">
+          <label>Chamber</label>
+          <select id="run-chamber">
+            <option value="house" ${chamber==='house'?'selected':''}>State House (180)</option>
+            <option value="senate" ${chamber==='senate'?'selected':''}>State Senate (56)</option>
+            <option value="congress" ${chamber==='congress'?'selected':''}>Congressional (14)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Steps (neutral maps to generate)</label>
+          <select id="run-steps">${stepOpts}</select>
+        </div>
+        <div class="field">
+          <label>Population tolerance (ε)</label>
+          <select id="run-epsilon">${epsOpts}</select>
+        </div>
+        <button class="run-btn" id="run-btn">▶ Run Ensemble</button>
+        <div id="run-status-badge" style="display:none"></div>
+      </div>
+
+      <div style="margin-bottom:.6rem"><label style="font-size:.78rem;font-weight:700;color:var(--gray)">PROPOSAL ALGORITHM</label></div>
+      <div class="algo-cards" id="algo-cards">${algoCards}</div>
+      <p style="font-size:.76rem;color:var(--gray);margin-top:.5rem">
+        Running a new ensemble replaces the current one for that chamber. The map's stability heatmap updates automatically when the run completes.
+      </p>
+    </div>
+    <div>
+      <div class="section-title">Run History</div>
+      <div id="run-history-table"><div class="loading">Loading…</div></div>
+    </div>`;
+
+  await refreshRunHistory();
+
+  document.getElementById('run-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('run-btn');
+    const ch  = document.getElementById('run-chamber').value;
+    const st  = +document.getElementById('run-steps').value;
+    const ep  = +document.getElementById('run-epsilon').value;
+    btn.disabled=true; btn.textContent='Starting…';
+    try {
+      const resp = await fetch(`${API}/api/ensemble/${ch}/run?steps=${st}&epsilon=${ep}&algo=${selectedAlgo}`,{method:'POST'});
+      const run  = await resp.json();
+      showRunStatus('running','Running… please wait');
+      pollRunStatus(run.run_id, ch);
+    } catch(e) {
+      showRunStatus('error','Failed: '+e.message);
+      btn.disabled=false; btn.textContent='▶ Run Ensemble';
+    }
+  });
+}
+
+window.selectAlgo = function(key) {
+  selectedAlgo = key;
+  document.querySelectorAll('.algo-card').forEach(c=>c.classList.toggle('selected',c.dataset.algo===key));
+};
+
+function showRunStatus(status, msg) {
+  const badge=document.getElementById('run-status-badge');
+  if (!badge) return;
+  badge.style.display='inline-flex';
+  badge.className=`run-status ${status}`;
+  badge.textContent=(status==='running'?'⏳ ':status==='done'?'✓ ':'✗ ')+msg;
+}
+
+function pollRunStatus(runId, chamber) {
+  if (runPollTimer) clearInterval(runPollTimer);
+  runPollTimer = setInterval(async ()=>{
+    try {
+      const s = await fetch(`${API}/api/ensemble/${chamber}/run/${runId}/status`).then(r=>r.json());
+      if (s.status==='done') {
+        clearInterval(runPollTimer);
+        showRunStatus('done',`Complete! ${(s.steps||0).toLocaleString()} steps.`);
+        document.getElementById('run-btn').disabled=false;
+        document.getElementById('run-btn').textContent='▶ Run Ensemble';
+        chamberMetas[chamber]=null; // invalidate cache
+        await refreshRunHistory();
+        const tip=document.createElement('div');
+        tip.className='run-status done'; tip.style.cssText='margin-top:.6rem;display:block;font-size:.8rem';
+        tip.innerHTML=`✓ Done. Switch to <strong>Metrics</strong> or <strong>Map</strong> view to see updated results.`;
+        document.querySelector('.run-panel')?.appendChild(tip);
+      } else if (s.status==='error') {
+        clearInterval(runPollTimer);
+        showRunStatus('error','Run failed. Check server logs.');
+        document.getElementById('run-btn').disabled=false;
+        document.getElementById('run-btn').textContent='▶ Run Ensemble';
+        await refreshRunHistory();
+      }
+    } catch(e){}
+  }, 3000);
+}
+
+async function refreshRunHistory() {
+  const el=document.getElementById('run-history-table');
+  if (!el) return;
+  try {
+    const data=await fetch(`${API}/api/ensemble/runs`).then(r=>r.json());
+    const runs=(data.runs||[]).sort((a,b)=>(b.started_at||'')<(a.started_at||'')?-1:1);
+    if (!runs.length){el.innerHTML='<p style="font-size:.83rem;color:var(--gray)">No runs yet.</p>';return;}
+    const rows=runs.map(r=>{
+      const sc=r.status==='done'?'done':r.status==='error'?'error':'running';
+      const icon=r.status==='done'?'✓':r.status==='error'?'✗':'⏳';
+      const dur=r.finished_at&&r.started_at?Math.round((new Date(r.finished_at)-new Date(r.started_at))/1000)+'s':r.status==='running'?'running…':'—';
+      return `<tr>
+        <td><span class="run-status ${sc}" style="padding:.1rem .35rem;font-size:.72rem">${icon} ${r.status}</span></td>
+        <td>${r.chamber}</td><td>${(r.steps||0).toLocaleString()}</td>
+        <td>${((r.epsilon||0)*100).toFixed(0)}%</td>
+        <td>${r.algo||'recom'}</td><td>${dur}</td>
+        <td style="color:var(--gray)">${(r.started_at||'').slice(0,16).replace('T',' ')}</td>
+      </tr>`;
+    }).join('');
+    el.innerHTML=`<div class="run-history"><table>
+      <thead><tr><th>Status</th><th>Chamber</th><th>Steps</th><th>ε</th><th>Algorithm</th><th>Duration</th><th>Started</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  } catch(e){el.innerHTML='<p style="font-size:.83rem;color:var(--gray)">Could not load history.</p>';}
+}
+
+// ── Sources & Config view ─────────────────────────────────────────────────────
+async function renderSourcesView() {
+  const main=document.getElementById('main');
+  main.innerHTML='<div class="loading">Loading…</div>';
+  if (!infoCache) {
+    try { infoCache=await fetch(`${API}/api/info`).then(r=>r.json()); }
+    catch(e){main.innerHTML=`<div class="error">${e.message}</div>`;return;}
+  }
+  const info=infoCache;
+
+  const chamberBlocks=(info.chambers||[]).map(c=>{
+    const ranAt=c.ran_at?c.ran_at.replace('T',' ').slice(0,16):'n/a';
+    const dur=c.runtime_seconds!=null?(c.runtime_seconds<60?`${c.runtime_seconds}s`:`${(c.runtime_seconds/60).toFixed(1)} min`):'n/a';
+    const eps=c.epsilon!=null?`±${(c.epsilon*100).toFixed(0)}%`:'n/a';
+    return `<div class="info-card" style="grid-column:span 2">
+      <h3>📊 ${c.chamber.charAt(0).toUpperCase()+c.chamber.slice(1)} Chamber Run</h3>
+      <table class="run-meta-table">
+        <tr><td>Neutral maps generated</td><td><strong>${(c.steps||0).toLocaleString()}</strong></td></tr>
+        <tr><td>Districts</td><td>${c.num_districts}</td></tr>
+        <tr><td>Ideal pop / district</td><td>${(c.ideal_population||0).toLocaleString(undefined,{maximumFractionDigits:0})}</td></tr>
+        <tr><td>Population tolerance (ε)</td><td>${eps}</td></tr>
+        <tr><td>Algorithm</td><td>${c.algorithm?.name||c.algorithm?.method||'ReCom'}</td></tr>
+        <tr><td>Run completed</td><td>${ranAt}</td></tr>
+        <tr><td>Run duration</td><td>${dur}</td></tr>
+        ${c.data_sources?`<tr><td>Precincts</td><td style="font-size:.78rem">${c.data_sources.precincts}</td></tr>`:''}
+        ${c.data_sources?`<tr><td>Population</td><td style="font-size:.78rem">${c.data_sources.population}</td></tr>`:''}
+        ${c.data_sources?`<tr><td>District file</td><td style="font-size:.78rem">${c.data_sources.districts}</td></tr>`:''}
+        ${c.data_sources?`<tr><td>Election data</td><td style="font-size:.78rem">${c.data_sources.election}</td></tr>`:''}
+      </table>
+    </div>`;
+  }).join('');
+
+  const metrics=info.methodology?.metric_definitions||{};
+  const refs=info.methodology?.references||[];
+
+  main.innerHTML=`<div class="sources-grid">
+    <div class="info-card" style="grid-column:span 2">
+      <h3>📋 About This Analysis</h3>
+      <p>${info.methodology?.summary||''}</p>
+    </div>
+    ${chamberBlocks}
+    <div class="info-card">
+      <h3>📐 Algorithm Details</h3>
+      <ul>
+        <li><strong>Primary method:</strong> ReCom (Recombination)</li>
+        <li><strong>Library:</strong> GerryChain 0.3.x — MGGG Redistricting Lab, Tufts University</li>
+        <li><strong>How ReCom works:</strong> Pick two adjacent districts at random, merge them into one region, then re-split via a random spanning tree of that region</li>
+        <li><strong>Acceptance:</strong> All proposals accepted (random walk — no bias toward or away from any configuration)</li>
+        <li><strong>Population constraint:</strong> Each proposed district must be within ±ε% of the ideal equal-population target</li>
+        <li><strong>Contiguity:</strong> Guaranteed by construction — the spanning tree always produces connected districts</li>
+        <li><strong>Alternative: Reversible ReCom</strong> — uses Metropolis-Hastings acceptance to sample from a known probability distribution; more rigorous but slower. Select on the Run page.</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>📏 Metric Definitions</h3>
+      <ul>
+        ${Object.entries(metrics).map(([k,v])=>`<li><strong>${k.replace(/_/g,' ')}:</strong> ${v}</li>`).join('')}
+      </ul>
+    </div>
+    <div class="info-card" style="grid-column:span 2">
+      <h3>📚 Data Sources &amp; References</h3>
+      <ul>
+        <li><strong>Redistricting Data Hub</strong> — <a href="https://redistrictingdatahub.org/state/georgia/" target="_blank">redistrictingdatahub.org/state/georgia/</a></li>
+        <li><strong>2020 Census PL 94-171</strong> — Block-level population and race/ethnicity</li>
+        <li><strong>Georgia General Assembly</strong> — 2023 Enacted district shapefiles</li>
+        ${refs.map(r=>`<li>${r}</li>`).join('')}
+      </ul>
+    </div>
+  </div>`;
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function renderChamberTabs(available) {
+  const el=document.getElementById('chamber-tabs');
+  const order=['house','senate','congress'];
+  const labels={house:'House (180)',senate:'Senate (56)',congress:'Congressional (14)'};
+  el.innerHTML=order.map(c=>{
+    const avail=available.includes(c);
+    return `<div class="nav-tab ${!avail?'disabled':c===activeChamber?'active':''}" data-chamber="${c}">${labels[c]}</div>`;
+  }).join('');
+  el.querySelectorAll('.nav-tab:not(.disabled)').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      activeChamber=tab.dataset.chamber;
+      el.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.chamber===activeChamber));
+      renderActiveView();
+    });
+  });
+}
+
+function renderViewTabs() {
+  document.getElementById('view-tabs').querySelectorAll('.nav-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      activeView=tab.dataset.view;
+      document.getElementById('view-tabs').querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===activeView));
+      renderActiveView();
+    });
+  });
+}
+
+function renderActiveView() {
+  if (activeView==='sources'){renderSourcesView();return;}
+  if (!activeChamber) return;
+  if (activeView==='metrics') renderMetrics(activeChamber);
+  else if (activeView==='map') renderMapView(activeChamber);
+  else if (activeView==='run') renderRunView(activeChamber);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const h=await fetch(`${API}/health`).then(r=>r.json());
+    availableChambers=h.chambers_ready||[];
+  } catch(e) {
+    document.getElementById('main').innerHTML=`<div class="error">Cannot reach API. Start it with:<br><code>cd ~/codebox/fdga-chain && uv run uvicorn api.main:app --port 8001</code></div>`;
+    return;
+  }
+  // Pre-load chamber metadata for pre-populating the run form
+  await Promise.all(availableChambers.map(async ch => {
+    try {
+      const info = await fetch(`${API}/api/info`).then(r=>r.json());
+      (info.chambers||[]).forEach(c => { chamberMetas[c.chamber]=c; });
+    } catch(e){}
+  }));
+
+  activeChamber=availableChambers.includes('house')?'house':availableChambers[0]||null;
+  renderChamberTabs(availableChambers);
+  renderViewTabs();
+  renderActiveView();
+}
+
+init();
+</script>
+<footer>
+  Fair Districts Georgia · <a href="https://fairdistrictsga.org">fairdistrictsga.org</a> ·
+  Powered by <a href="https://mggg.org/gerrychain/">GerryChain</a> ·
+  Data: <a href="https://redistrictingdatahub.org">Redistricting Data Hub</a>
+</footer>
+</body>
+</html>

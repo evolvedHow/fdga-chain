@@ -336,19 +336,40 @@ window.API_BASE_OVERRIDE = null;
 // Do NOT paste a real token here — it will be blocked by GitHub push protection.
 window.MAPBOX_TOKEN = null; // __MAPBOX_TOKEN_INJECT__ ← replaced by CI, do not edit this line
 
-const API_BASE = window.API_BASE_OVERRIDE || (() => {
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    return 'http://localhost:8001';
-  }
-  // When hosted on GitHub Pages, point to Modal backend.
-  // Update this URL after running: modal deploy modal_app.py
-  return 'https://evolvedhow--fdga-chain.modal.run';
-})();
+const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-const IS_STATIC = false; // legacy flag — kept for run-panel compat; always false now
+// On GitHub Pages: use static pre-computed JSON by default.
+// Set window.API_BASE_OVERRIDE to your Modal URL to use the live backend instead.
+const API_BASE = window.API_BASE_OVERRIDE || (IS_LOCAL ? 'http://localhost:8001' : null);
+
+// Static mode: GitHub Pages with no Modal URL configured
+const IS_STATIC = !API_BASE;
+
+// Map API paths → pre-computed static JSON files in docs/data/
+function pathToStatic(path) {
+  const [bare, qs] = path.split('?');
+  const params = new URLSearchParams(qs || '');
+  if (bare === '/health')                   return 'data/health.json';
+  if (bare === '/api/chambers')             return 'data/chambers.json';
+  if (bare === '/api/info')                 return 'data/info.json';
+  if (bare === '/api/algorithms')           return 'data/algorithms.json';
+  if (bare === '/api/ensemble/runs')        return 'data/runs.json';
+  const enactedM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/ensemble\/enacted$/);
+  if (enactedM) return `data/${enactedM[1]}_enacted.json`;
+  const summaryM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/ensemble\/summary$/);
+  if (summaryM) return `data/${summaryM[1]}_summary.json`;
+  const histM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/(?:ensemble\/)?histogram$/);
+  if (histM) return `data/${histM[1]}_hist_${params.get('metric')||'dem_seats'}.json`;
+  const mapEnactedM = bare.match(/^\/api\/maps\/(?:\w+\/)?(\w+)\/enacted$/);
+  if (mapEnactedM) return `data/${mapEnactedM[1]}_map_enacted.json`;
+  const mapStabM = bare.match(/^\/api\/maps\/(?:\w+\/)?(\w+)\/stability$/);
+  if (mapStabM) return `data/${mapStabM[1]}_map_stability.json`;
+  return path; // unmapped paths return as-is (will gracefully 404)
+}
 
 async function fetchApi(path, options) {
-  return fetch(`${API_BASE}${path}`, options);
+  const url = IS_STATIC ? pathToStatic(path) : `${API_BASE}${path}`;
+  return fetch(url, options);
 }
 
 // Active state — defaults to GA; multi-state selector planned for Phase 3
@@ -1525,30 +1546,35 @@ function renderActiveView() {
 // ── Mapbox token bootstrap ────────────────────────────────────────────────────
 // Priority: already set (CI inject) → /api/config (Modal Secret / .env) → null
 async function initMapboxToken() {
-  if (window.MAPBOX_TOKEN) return;  // already injected by GitHub Actions
+  if (window.MAPBOX_TOKEN) return;  // already injected by GitHub Actions CI
+  if (IS_STATIC) return;            // no backend to ask — CI inject is the only source
   try {
     const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.ok ? r.json() : null);
     if (cfg?.mapbox_token) window.MAPBOX_TOKEN = cfg.mapbox_token;
-  } catch(e) { /* backend not reachable — token stays null, history tab shows notice */ }
+  } catch(e) { /* backend not reachable — history tab will show token notice */ }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   await initMapboxToken();
   try {
-    const h=await fetchApi(`/health`).then(r=>r.json());
-    // New format: chambers_ready = ["GA/house", "GA/senate", ...]
-    // Legacy format: chambers_ready = ["house", "senate", ...]
+    const h = await fetchApi(`/health`).then(r => r.json());
+    // Normalize: new API returns ["GA/house",...], static JSON returns ["house",...]
     const raw = h.chambers_ready || [];
     availableChambers = raw
       .filter(c => c.includes('/') ? c.startsWith(ACTIVE_STATE+'/') : true)
       .map(c => c.includes('/') ? c.split('/')[1] : c);
   } catch(e) {
-    document.getElementById('main').innerHTML =
-      `<div class="error">Cannot reach API at <strong>${API_BASE}</strong>.<br>
-       To run locally: <code>cd ~/codebox/fdga-chain && uv run uvicorn api.main:app --port 8001</code><br>
-       For production: deploy the backend to Modal (see <code>modal_app.py</code>).</div>`;
-    return;
+    if (IS_STATIC) {
+      // Static mode: health.json missing or malformed — default to all three chambers
+      availableChambers = ['house', 'senate', 'congress'];
+    } else {
+      document.getElementById('main').innerHTML =
+        `<div class="error">Cannot reach API at <strong>${API_BASE}</strong>.<br>
+         To run locally: <code>cd ~/codebox/fdga-chain && uv run uvicorn api.main:app --port 8001</code><br>
+         For production: deploy the backend to Modal, then set <code>window.API_BASE_OVERRIDE</code>.</div>`;
+      return;
+    }
   }
   // Pre-load chamber metadata for pre-populating the run form
   try {

@@ -1,0 +1,83 @@
+{
+  "state": "GA",
+  "name": "Georgia",
+  "chambers": ["house", "senate", "congress"],
+  "chamber_info": {
+    "house": {
+      "label": "State House",
+      "num_districts": 180,
+      "district_col": "HDIST"
+    },
+    "senate": {
+      "label": "State Senate",
+      "num_districts": 56,
+      "district_col": "SDIST"
+    },
+    "congress": {
+      "label": "U.S. Congress",
+      "num_districts": 14,
+      "district_col": "CDIST"
+    }
+  },
+  "cycles": [
+    {
+      "year": 2001,
+      "label": "2001 Redistricting",
+      "event": "Post-2000 Census",
+      "note": "Democrats controlled legislature"
+    },
+    {
+      "year": 2005,
+      "label": "2005 Mid-decade Re-draw",
+      "event": "Mid-decade (unusual — Republicans took control in 2004)",
+      "note": "Republicans redrew maps after taking the legislature mid-decade"
+    },
+    {
+      "year": 2011,
+      "label": "2011 Redistricting",
+      "event": "Post-2010 Census",
+      "note": "Republicans controlled legislature; required DOJ preclearance under VRA §5"
+    },
+    {
+      "year": 2021,
+      "label": "2021 Redistricting",
+      "event": "Post-2020 Census (current maps)",
+      "note": "Post-Shelby County v. Holder — no federal preclearance required"
+    }
+  ],
+  "timeline_events": [
+    {
+      "year": 2001,
+      "label": "2001 Maps",
+      "type": "redistricting"
+    },
+    {
+      "year": 2003,
+      "label": "Republicans win GA legislature",
+      "type": "political"
+    },
+    {
+      "year": 2005,
+      "label": "2005 Mid-decade Re-draw",
+      "type": "redistricting"
+    },
+    {
+      "year": 2011,
+      "label": "2011 Maps",
+      "type": "redistricting"
+    },
+    {
+      "year": 2013,
+      "label": "Shelby v. Holder — VRA §5 preclearance struck down",
+      "type": "legal"
+    },
+    {
+      "year": 2021,
+      "label": "2021 Maps (current)",
+      "type": "redistricting"
+    }
+  ],
+  "election_years": [2002, 2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018, 2020, 2022],
+  "fips": "13",
+  "abbreviation": "GA"
+}

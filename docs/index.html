@@ -7,6 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet"/>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
 <style>
 :root {
   --blue:  #1a4b8c; --red: #c0392b; --green: #27ae60; --amber: #d68910; --gray: #555;
@@ -175,6 +177,115 @@ main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
 .error{background:#fef0f0;border:1px solid #f5a9a9;border-radius:8px;padding:1rem;color:var(--red);font-size:.85rem}
 .section-title{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:.7rem}
 footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
+
+/* ── History / Timeline view ── */
+.history-layout{display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start}
+@media(max-width:860px){.history-layout{grid-template-columns:1fr}}
+
+.history-map-wrap{position:relative;border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+#history-map{height:540px;width:100%}
+
+.history-sidebar{display:flex;flex-direction:column;gap:.85rem}
+
+/* Year display */
+.history-year-badge{
+  background:var(--blue);color:#fff;border-radius:10px;
+  padding:.8rem 1rem;text-align:center
+}
+.history-year-num{font-size:2.4rem;font-weight:800;line-height:1;letter-spacing:-.02em}
+.history-year-event{font-size:.75rem;opacity:.85;margin-top:.3rem;line-height:1.4}
+
+/* Timeline slider */
+.timeline-card{background:var(--card);border-radius:10px;padding:.9rem 1rem;box-shadow:var(--shadow)}
+.timeline-card h4{font-size:.78rem;font-weight:700;color:var(--blue);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}
+
+.timeline-track{position:relative;padding:0 8px;margin-bottom:.4rem}
+input[type=range].timeline-range{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:4px;background:var(--border);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range].timeline-range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:18px;height:18px;border-radius:50%;background:var(--blue);border:3px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;transition:transform .1s;
+}
+input[type=range].timeline-range::-webkit-slider-thumb:hover{transform:scale(1.2)}
+input[type=range].timeline-range::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;background:var(--blue);border:3px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;
+}
+
+/* Year tick marks */
+.timeline-ticks{display:flex;justify-content:space-between;padding:0 2px;margin-top:.35rem}
+.timeline-tick{display:flex;flex-direction:column;align-items:center;gap:.15rem;cursor:pointer;min-width:0}
+.timeline-tick-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--border);border:2px solid var(--border);
+  transition:all .15s;flex-shrink:0
+}
+.timeline-tick.active .timeline-tick-dot{background:var(--blue);border-color:var(--blue);transform:scale(1.3)}
+.timeline-tick.has-data .timeline-tick-dot{border-color:var(--blue)}
+.timeline-tick.no-data .timeline-tick-dot{opacity:.4}
+.timeline-tick-label{font-size:.62rem;font-weight:700;color:var(--gray);white-space:nowrap}
+.timeline-tick.active .timeline-tick-label{color:var(--blue)}
+.timeline-tick.no-data .timeline-tick-label{opacity:.45}
+
+/* Timeline events list */
+.timeline-events{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem}
+.timeline-event-item{
+  display:flex;align-items:flex-start;gap:.5rem;
+  font-size:.74rem;line-height:1.4;
+}
+.timeline-event-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:.2rem;
+}
+.timeline-event-dot.redistricting{background:var(--blue)}
+.timeline-event-dot.political    {background:var(--amber)}
+.timeline-event-dot.legal        {background:var(--red)}
+.timeline-event-year{font-weight:700;color:var(--gray);flex-shrink:0;min-width:28px}
+.timeline-event-text{color:#444}
+
+/* Stats panel */
+.history-stats-card{background:var(--card);border-radius:10px;padding:.85rem 1rem;box-shadow:var(--shadow)}
+.history-stats-card h4{font-size:.78rem;font-weight:700;color:var(--blue);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.05em}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.22rem 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--gray)}
+.stat-val{font-weight:700}
+.stat-val.dem{color:var(--blue)}
+.stat-val.rep{color:var(--red)}
+.stat-val.bad{color:var(--red)}
+.stat-val.ok {color:var(--amber)}
+.stat-val.good{color:var(--green)}
+
+/* Seats-votes mini bar */
+.seats-votes-bar{height:10px;border-radius:5px;overflow:hidden;display:flex;margin:.3rem 0 .15rem}
+.seats-votes-bar .dem-seg{background:var(--blue)}
+.seats-votes-bar .rep-seg{background:var(--red)}
+
+/* District hover info */
+.district-hover-card{background:var(--card);border-radius:10px;padding:.85rem 1rem;box-shadow:var(--shadow);border-left:3px solid var(--blue)}
+
+/* Map legend overlay */
+.map-legend-overlay{
+  position:absolute;bottom:1.2rem;left:1rem;
+  background:rgba(255,255,255,.9);border-radius:8px;
+  padding:.55rem .75rem;box-shadow:0 2px 8px rgba(0,0,0,.15);
+  pointer-events:none;min-width:160px;
+}
+.legend-gradient-bar{
+  height:10px;border-radius:4px;margin:.3rem 0 .15rem;
+  background:linear-gradient(to right,#c0392b,#9b59b6,#1a4b8c);
+}
+.legend-gradient-labels{display:flex;justify-content:space-between;font-size:.62rem;color:var(--gray)}
+
+/* No-token notice */
+.token-notice{
+  height:540px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--card);border-radius:10px;box-shadow:var(--shadow);gap:.6rem;text-align:center;
+  padding:2rem;
+}
+.token-notice h3{color:var(--blue);font-size:1rem}
+.token-notice code{background:var(--light);padding:.2rem .5rem;border-radius:4px;font-size:.82rem}
 </style>
 </head>
 <body>
@@ -193,6 +304,7 @@ footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
   <span class="nav-label">View:</span>
   <div class="nav-tabs" id="view-tabs">
     <div class="nav-tab active" data-view="metrics">Metrics</div>
+    <div class="nav-tab" data-view="history">History</div>
     <div class="nav-tab" data-view="map">Map</div>
     <div class="nav-tab" data-view="run">Run Analysis</div>
     <div class="nav-tab" data-view="sources">Sources &amp; Config</div>
@@ -213,59 +325,33 @@ footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
 <main id="main"><div class="loading">Loading…</div></main>
 
 <script>
-// ── Static-site detection ─────────────────────────────────────────────────────
-// When served from GitHub Pages (not localhost), fetch pre-computed JSON files
-// from docs/data/ instead of hitting the live API.
-const IS_STATIC = !['localhost', '127.0.0.1'].includes(location.hostname);
+// ── API Base URL config ───────────────────────────────────────────────────────
+// For production (GitHub Pages → Modal), set this to your Modal endpoint URL.
+// Leave null to auto-detect: localhost in dev, Modal URL when hosted.
+window.API_BASE_OVERRIDE = null;
 
-function pathToStatic(path) {
-  // Strip query string, extract key parts, map to a flat filename.
-  const [bare, qs] = path.split('?');
-  const params = new URLSearchParams(qs || '');
+// Mapbox token — paste your public token here (starts with pk.)
+// Get one free at https://account.mapbox.com/
+window.MAPBOX_TOKEN = null; // e.g. 'pk.eyJ1IjoieW91ci11c2VyIiwiYSI6Ii4uLiJ9...'
 
-  // /health
-  if (bare === '/health') return 'data/health.json';
-  // /api/chambers
-  if (bare === '/api/chambers') return 'data/chambers.json';
-  // /api/info
-  if (bare === '/api/info') return 'data/info.json';
-  // /api/algorithms
-  if (bare === '/api/algorithms') return 'data/algorithms.json';
-  // /api/ensemble/runs
-  if (bare === '/api/ensemble/runs') return 'data/runs.json';
-
-  // /api/ensemble/{chamber}/enacted
-  const enactedM = bare.match(/^\/api\/ensemble\/(\w+)\/enacted$/);
-  if (enactedM) return `data/${enactedM[1]}_enacted.json`;
-
-  // /api/ensemble/{chamber}/summary
-  const summaryM = bare.match(/^\/api\/ensemble\/(\w+)\/summary$/);
-  if (summaryM) return `data/${summaryM[1]}_summary.json`;
-
-  // /api/ensemble/{chamber}/histogram?metric=X&bins=N
-  const histM = bare.match(/^\/api\/ensemble\/(\w+)\/histogram$/);
-  if (histM) {
-    const metric = params.get('metric') || 'dem_seats';
-    return `data/${histM[1]}_hist_${metric}.json`;
+const API_BASE = window.API_BASE_OVERRIDE || (() => {
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    return 'http://localhost:8001';
   }
+  // When hosted on GitHub Pages, point to Modal backend.
+  // Update this URL after running: modal deploy modal_app.py
+  return 'https://evolvedhow--fdga-chain.modal.run';
+})();
 
-  // /api/maps/{chamber}/enacted
-  const mapEnactedM = bare.match(/^\/api\/maps\/(\w+)\/enacted$/);
-  if (mapEnactedM) return `data/${mapEnactedM[1]}_map_enacted.json`;
-
-  // /api/maps/{chamber}/stability
-  const mapStabM = bare.match(/^\/api\/maps\/(\w+)\/stability$/);
-  if (mapStabM) return `data/${mapStabM[1]}_map_stability.json`;
-
-  return path; // fallback (will 404 gracefully)
-}
+const IS_STATIC = false; // legacy flag — kept for run-panel compat; always false now
 
 async function fetchApi(path, options) {
-  const url = IS_STATIC ? pathToStatic(path) : path;
-  return fetch(url, options);
+  return fetch(`${API_BASE}${path}`, options);
 }
 
-const API = '';
+// Active state — defaults to GA; multi-state selector planned for Phase 3
+const ACTIVE_STATE = 'GA';
+
 let activeView = 'metrics';
 let activeChamber = null;
 let availableChambers = [];
@@ -667,22 +753,25 @@ let selectedAlgo = 'recom';
 async function renderRunView(chamber) {
   const main = document.getElementById('main');
 
-  if (IS_STATIC) {
+  // Show info notice when running from GitHub Pages without a backend configured
+  const isGitHubPages = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+  if (isGitHubPages && API_BASE.includes('modal.run') && API_BASE.includes('evolvedhow--fdga-chain')) {
+    // Still render the full run panel — Modal backend may be deployed
+  } else if (isGitHubPages) {
     main.innerHTML = `
       <div class="run-panel">
         <h3>Run New Ensemble</h3>
         <div class="interp-box" style="margin-bottom:1rem">
-          <strong>Running new ensembles requires the Python backend.</strong><br>
-          This hosted version shows pre-computed results. To generate new maps:
+          <strong>Backend not configured.</strong> Set <code>window.API_BASE_OVERRIDE</code> in <code>index.html</code>
+          to your Modal deployment URL, or run locally:
           <ol style="margin:.5rem 0 0 1.1rem;line-height:1.8;font-size:.85rem">
-            <li>Clone the repository: <code>git clone https://github.com/your-org/fdga-chain</code></li>
-            <li>Install dependencies: <code>cd fdga-chain && uv sync</code></li>
-            <li>Run an ensemble: <code>uv run python scripts/run_ensemble.py --chamber house --steps 10000</code></li>
-            <li>Start the API: <code>uv run uvicorn api.main:app --port 8001</code></li>
-            <li>Open <code>http://localhost:8001</code> in your browser</li>
+            <li>Install: <code>cd fdga-chain && uv sync</code></li>
+            <li>Run ensemble: <code>uv run python scripts/run_ensemble.py --chamber house --steps 10000</code></li>
+            <li>Start API: <code>uv run uvicorn api.main:app --port 8001</code></li>
+            <li>Open <code>http://localhost:8001</code></li>
           </ol>
         </div>
-        <div class="section-title">Pre-computed Ensembles</div>
+        <div class="section-title">Loaded Ensembles</div>
         ${Object.entries(chamberMetas).map(([ch,m])=>{
           if(!m) return '';
           const ranAt=m.ran_at?m.ran_at.replace('T',' ').slice(0,16):'n/a';
@@ -767,7 +856,7 @@ async function renderRunView(chamber) {
     const ep  = +document.getElementById('run-epsilon').value;
     btn.disabled=true; btn.textContent='Starting…';
     try {
-      const resp = await fetchApi(`/api/ensemble/${ch}/run?steps=${st}&epsilon=${ep}&algo=${selectedAlgo}`,{method:'POST'});
+      const resp = await fetchApi(`/api/states/${ACTIVE_STATE}/${ch}/ensemble/run?steps=${st}&epsilon=${ep}&algo=${selectedAlgo}`,{method:'POST'});
       const run  = await resp.json();
       showRunStatus('running','Running… please wait');
       pollRunStatus(run.run_id, ch);
@@ -795,7 +884,7 @@ function pollRunStatus(runId, chamber) {
   if (runPollTimer) clearInterval(runPollTimer);
   runPollTimer = setInterval(async ()=>{
     try {
-      const s = await fetchApi(`/api/ensemble/${chamber}/run/${runId}/status`).then(r=>r.json());
+      const s = await fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/ensemble/run/${runId}/status`).then(r=>r.json());
       if (s.status==='done') {
         clearInterval(runPollTimer);
         showRunStatus('done',`Complete! ${(s.steps||0).toLocaleString()} steps.`);
@@ -914,6 +1003,476 @@ async function renderSourcesView() {
   </div>`;
 }
 
+// ── History / Timeline view ───────────────────────────────────────────────────
+
+let _historyMap = null;          // Mapbox GL JS instance
+let _historyChamber = null;      // which chamber the map is showing
+let _historyYearIdx = 0;         // current slider index
+let _historyCycles = [];         // [{year, label, event, has_boundaries, has_elections, has_metrics}]
+let _historyMetricsCache = {};   // {`chamber_year`: metricsObj}
+let _historyLoadingYear = null;  // debounce: don't double-load
+
+// Georgia-specific timeline events (beyond redistricting cycles)
+const GA_TIMELINE_EVENTS = [
+  {year:2001, label:"Democrats draw 2001 maps", type:"redistricting"},
+  {year:2002, label:"First elections on 2001 maps", type:"political"},
+  {year:2003, label:"Republicans win GA legislature for first time since Reconstruction", type:"political"},
+  {year:2005, label:"Republicans redraw maps mid-decade", type:"redistricting"},
+  {year:2011, label:"2011 maps drawn — DOJ preclearance required under VRA §5", type:"redistricting"},
+  {year:2013, label:"Shelby County v. Holder: Federal preclearance struck down", type:"legal"},
+  {year:2021, label:"2021 maps drawn — first cycle without federal oversight", type:"redistricting"},
+  {year:2023, label:"Federal court orders some GA districts redrawn (VRA §2)", type:"legal"},
+];
+
+// Color scale: 0% Dem → red, 50% → purple, 100% Dem → blue
+function demPctToColor(pct) {
+  if (pct == null) return '#aaaaaa';
+  // Lerp: red #c0392b → purple #9b59b6 → blue #1a4b8c
+  if (pct <= 0.5) {
+    const t = pct / 0.5;
+    const r = Math.round(192 + (155-192)*t);
+    const g = Math.round(57  + (89 -57 )*t);
+    const b = Math.round(43  + (182-43 )*t);
+    return `rgb(${r},${g},${b})`;
+  } else {
+    const t = (pct - 0.5) / 0.5;
+    const r = Math.round(155 + (26 -155)*t);
+    const g = Math.round(89  + (75 -89 )*t);
+    const b = Math.round(182 + (140-182)*t);
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+// Build Mapbox color expression from GeoJSON features' dem_pct
+function buildMapboxColorExpr() {
+  return ['case',
+    ['==', ['get', 'dem_pct'], null], '#aaaaaa',
+    ['interpolate', ['linear'], ['get', 'dem_pct'],
+      0,   '#c0392b',
+      0.5, '#9b59b6',
+      1,   '#1a4b8c',
+    ]
+  ];
+}
+
+// Merge election data into GeoJSON features by district_id
+function mergeElections(geojson, elections) {
+  if (!elections?.districts) return geojson;
+  const byId = {};
+  for (const d of elections.districts) {
+    byId[String(d.district_id)] = d;
+  }
+  const features = geojson.features.map(f => {
+    const id = String(f.properties?.district_id || f.properties?.DISTRICT ||
+                      f.properties?.NAME || '').replace(/^0+/, '').trim();
+    const elec = byId[id] || null;
+    return {
+      ...f,
+      properties: {
+        ...f.properties,
+        district_id: id,
+        dem_pct:     elec ? elec.dem_pct  : null,
+        dem_votes:   elec ? elec.dem_votes : null,
+        rep_votes:   elec ? elec.rep_votes : null,
+        winner:      elec ? elec.winner    : null,
+        margin:      elec ? elec.margin    : null,
+      }
+    };
+  });
+  return {...geojson, features};
+}
+
+async function renderHistoryView(chamber) {
+  const main = document.getElementById('main');
+
+  if (!window.MAPBOX_TOKEN) {
+    main.innerHTML = `
+      <div class="history-layout">
+        <div class="token-notice">
+          <h3>Mapbox Token Required</h3>
+          <p style="font-size:.85rem;color:var(--gray);max-width:420px">
+            The History tab uses Mapbox GL JS for interactive maps.<br>
+            Add your token in <code>frontend/index.html</code>:
+          </p>
+          <code>window.MAPBOX_TOKEN = 'pk.eyJ1IjoieW91...';</code>
+          <p style="font-size:.78rem;color:var(--gray);margin-top:.5rem">
+            Free tokens available at
+            <a href="https://account.mapbox.com/" target="_blank">account.mapbox.com</a>
+          </p>
+        </div>
+        <div class="history-sidebar">
+          <div class="history-year-badge">
+            <div class="history-year-num">—</div>
+            <div class="history-year-event">Set Mapbox token to enable maps</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Destroy existing map on chamber change
+  if (_historyMap && _historyChamber !== chamber) {
+    _historyMap.remove();
+    _historyMap = null;
+  }
+  _historyChamber = chamber;
+
+  main.innerHTML = `
+    <div class="history-layout">
+      <div class="history-map-wrap">
+        <div id="history-map"></div>
+        <div class="map-legend-overlay">
+          <div style="font-size:.67rem;font-weight:700;color:var(--gray);margin-bottom:.1rem">PARTISAN LEAN</div>
+          <div class="legend-gradient-bar"></div>
+          <div class="legend-gradient-labels">
+            <span>100% R</span><span>50/50</span><span>100% D</span>
+          </div>
+        </div>
+      </div>
+      <div class="history-sidebar">
+        <div class="history-year-badge" id="history-year-badge">
+          <div class="history-year-num" id="history-year-num">…</div>
+          <div class="history-year-event" id="history-year-event">Loading…</div>
+        </div>
+
+        <div class="timeline-card">
+          <h4>Redistricting Timeline</h4>
+          <div class="timeline-track">
+            <input type="range" class="timeline-range" id="timeline-slider"
+              min="0" max="0" value="0" step="1">
+          </div>
+          <div class="timeline-ticks" id="timeline-ticks"></div>
+          <div class="timeline-events" id="timeline-events"></div>
+        </div>
+
+        <div class="history-stats-card" id="history-stats">
+          <h4>Election Results</h4>
+          <div class="loading" style="padding:.5rem 0;font-size:.8rem">Loading…</div>
+        </div>
+
+        <div class="district-hover-card" id="history-district-info" style="display:none">
+          <div class="section-title" style="margin-bottom:.4rem">District</div>
+          <div id="history-district-body" style="font-size:.8rem;line-height:1.6;color:#333"></div>
+        </div>
+      </div>
+    </div>`;
+
+  // Init Mapbox
+  mapboxgl.accessToken = window.MAPBOX_TOKEN;
+  if (!_historyMap) {
+    _historyMap = new mapboxgl.Map({
+      container: 'history-map',
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [-83.5, 32.7],
+      zoom: 6,
+    });
+    _historyMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    _historyMap.on('load', () => _historyMapDidLoad(chamber));
+  } else {
+    // Map already initialized — swap container and reload data
+    _historyMap.resize();
+    _historyMapLoadData(chamber, _historyCycles[_historyYearIdx]);
+  }
+
+  // Load cycles from API
+  try {
+    const cycles = await fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/cycles`).then(r => r.json());
+    _historyCycles = cycles;
+    _historyYearIdx = _historyCycles.length - 1; // default: most recent year
+    _buildTimeline(chamber, cycles);
+  } catch(e) {
+    // Fallback: just show 2021 with config from state info
+    _historyCycles = [{year:2021, label:'2021 Redistricting', event:'Post-2020 Census (current)', has_boundaries:false, has_elections:false, has_metrics:false}];
+    _historyYearIdx = 0;
+    _buildTimeline(chamber, _historyCycles);
+  }
+}
+
+function _historyMapDidLoad(chamber) {
+  // Add empty sources + layers; data filled in by _historyMapLoadData
+  _historyMap.addSource('districts', {type:'geojson', data:{type:'FeatureCollection',features:[]}});
+
+  _historyMap.addLayer({
+    id: 'districts-fill',
+    type: 'fill',
+    source: 'districts',
+    paint: {
+      'fill-color': buildMapboxColorExpr(),
+      'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.85, 0.6],
+    },
+  });
+
+  _historyMap.addLayer({
+    id: 'districts-outline',
+    type: 'line',
+    source: 'districts',
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 10, 1.5],
+    },
+  });
+
+  _historyMap.addLayer({
+    id: 'districts-outline-hover',
+    type: 'line',
+    source: 'districts',
+    paint: {
+      'line-color': '#333333',
+      'line-width': 2.5,
+    },
+    filter: ['==', ['get', 'district_id'], ''],
+  });
+
+  // Hover interaction
+  let hoveredId = null;
+  _historyMap.on('mousemove', 'districts-fill', e => {
+    if (!e.features?.length) return;
+    if (hoveredId !== null) {
+      _historyMap.setFeatureState({source:'districts', id:hoveredId}, {hover:false});
+    }
+    hoveredId = e.features[0].id;
+    _historyMap.setFeatureState({source:'districts', id:hoveredId}, {hover:true});
+    _historyMap.setFilter('districts-outline-hover', ['==', ['get', 'district_id'], e.features[0].properties.district_id]);
+    _showDistrictHover(e.features[0].properties);
+    _historyMap.getCanvas().style.cursor = 'pointer';
+  });
+  _historyMap.on('mouseleave', 'districts-fill', () => {
+    if (hoveredId !== null) {
+      _historyMap.setFeatureState({source:'districts', id:hoveredId}, {hover:false});
+      hoveredId = null;
+    }
+    _historyMap.setFilter('districts-outline-hover', ['==', ['get', 'district_id'], '']);
+    document.getElementById('history-district-info')?.style && (document.getElementById('history-district-info').style.display='none');
+    _historyMap.getCanvas().style.cursor = '';
+  });
+
+  // Load current year
+  if (_historyCycles.length) {
+    _historyMapLoadData(_historyChamber, _historyCycles[_historyYearIdx]);
+  }
+}
+
+async function _historyMapLoadData(chamber, cycleObj) {
+  if (!cycleObj || !_historyMap) return;
+  const {year, label, event} = cycleObj;
+  if (_historyLoadingYear === year) return;
+  _historyLoadingYear = year;
+
+  // Update year badge
+  const numEl = document.getElementById('history-year-num');
+  const evEl  = document.getElementById('history-year-event');
+  if (numEl) numEl.textContent = year;
+  if (evEl)  evEl.textContent = event || label;
+
+  _updateTimeline(year);
+
+  // Show loading in stats
+  const statsEl = document.getElementById('history-stats');
+  if (statsEl) statsEl.innerHTML = `<h4>Election Results</h4><div class="loading" style="padding:.5rem 0;font-size:.8rem">Loading ${year}…</div>`;
+
+  // Fetch boundaries + elections in parallel
+  const boundaryUrl = year === 2021
+    ? `/api/maps/${ACTIVE_STATE}/${chamber}/enacted`
+    : `/api/states/${ACTIVE_STATE}/${chamber}/boundaries/${year}`;
+
+  const [geoResp, elecResp, metricsResp] = await Promise.allSettled([
+    fetchApi(boundaryUrl).then(r => r.ok ? r.json() : null),
+    fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/elections/${year}`).then(r => r.ok ? r.json() : null),
+    fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/metrics/${year}`).then(r => r.ok ? r.json() : null),
+  ]);
+
+  const geo     = geoResp.status === 'fulfilled'    ? geoResp.value    : null;
+  const elec    = elecResp.status === 'fulfilled'   ? elecResp.value   : null;
+  const metrics = metricsResp.status === 'fulfilled' ? metricsResp.value : null;
+
+  if (geo) {
+    const merged = elec ? mergeElections(geo, elec) : geo;
+    // Add numeric ids for feature-state
+    merged.features = merged.features.map((f, i) => ({...f, id: i}));
+    if (_historyMap.getSource('districts')) {
+      _historyMap.getSource('districts').setData(merged);
+      // Fit bounds on first load or year change
+      if (merged.features.length) {
+        const bounds = new mapboxgl.LngLatBounds();
+        merged.features.forEach(f => {
+          const coords = f.geometry?.coordinates;
+          if (!coords) return;
+          const flat = f.geometry.type === 'Polygon' ? coords[0] :
+                       f.geometry.type === 'MultiPolygon' ? coords[0][0] : [];
+          flat.forEach(c => bounds.extend(c));
+        });
+        if (!bounds.isEmpty()) {
+          _historyMap.fitBounds(bounds, {padding:30, duration:600});
+        }
+      }
+    }
+  } else {
+    if (statsEl) statsEl.innerHTML = `
+      <h4>Election Results</h4>
+      <div class="interp-box" style="font-size:.78rem;line-height:1.5;margin-top:.3rem">
+        <strong>Map data not yet downloaded</strong> for ${year}.<br>
+        Run the pipeline to load historical maps:<br>
+        <code style="font-size:.72rem">python scripts/fetch_boundaries.py --state GA --year ${year}</code>
+      </div>`;
+    _historyLoadingYear = null;
+    return;
+  }
+
+  _renderHistoryStats(chamber, year, elec, metrics);
+  _historyLoadingYear = null;
+}
+
+function _renderHistoryStats(chamber, year, elec, metrics) {
+  const el = document.getElementById('history-stats');
+  if (!el) return;
+
+  if (!elec && !metrics) {
+    el.innerHTML = `
+      <h4>Election Results</h4>
+      <div style="font-size:.78rem;color:var(--gray);padding:.3rem 0;line-height:1.5">
+        No election data for ${year}.<br>
+        Districts colored by ID (rainbow). Run<br>
+        <code style="font-size:.7rem">scripts/fetch_elections.py --state GA</code>
+      </div>`;
+    return;
+  }
+
+  const data = metrics || {};
+  const e    = elec || {};
+  const demSeats    = data.dem_seats   ?? e.districts?.filter(d=>d.winner==='D').length ?? '—';
+  const repSeats    = data.rep_seats   ?? e.districts?.filter(d=>d.winner==='R').length ?? '—';
+  const numDist     = data.num_districts ?? e.num_districts ?? (demSeats + repSeats || '—');
+  const demVotePct  = data.dem_vote_share ?? e.dem_vote_share ?? null;
+  const demSeatPct  = data.dem_seat_share ?? (demSeats && numDist ? demSeats/numDist : null);
+  const eg          = data.efficiency_gap ?? null;
+  const mm          = data.mean_median ?? null;
+  const elecYear    = data.election_year ?? e.election_year ?? year;
+
+  const egClass = eg == null ? '' : Math.abs(eg) > 0.08 ? 'bad' : Math.abs(eg) > 0.04 ? 'ok' : 'good';
+  const egStr   = eg == null ? '—' : `${eg > 0 ? '+' : ''}${(eg*100).toFixed(1)}% (favors ${eg>0?'R':'D'})`;
+  const mmStr   = mm == null ? '—' : `${mm > 0 ? '+' : ''}${(mm*100).toFixed(1)}%`;
+
+  const barDem = demSeatPct != null ? Math.round(demSeatPct*100) : 50;
+  const barRep = 100 - barDem;
+
+  el.innerHTML = `
+    <h4>Election Results — ${elecYear}</h4>
+    <div class="seats-votes-bar">
+      <div class="dem-seg" style="width:${barDem}%"></div>
+      <div class="rep-seg" style="width:${barRep}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--gray);margin-bottom:.5rem">
+      <span style="color:var(--blue)">D ${demSeats} seats (${barDem}%)</span>
+      <span style="color:var(--red)">R ${repSeats} seats (${barRep}%)</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">D vote share</span>
+      <span class="stat-val dem">${demVotePct!=null?(demVotePct*100).toFixed(1)+'%':'—'}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">D seat share</span>
+      <span class="stat-val dem">${demSeatPct!=null?(demSeatPct*100).toFixed(1)+'%':'—'}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Efficiency gap</span>
+      <span class="stat-val ${egClass}">${egStr}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Mean–median</span>
+      <span class="stat-val">${mmStr}</span>
+    </div>`;
+}
+
+function _showDistrictHover(props) {
+  const card = document.getElementById('history-district-info');
+  const body = document.getElementById('history-district-body');
+  if (!card || !body) return;
+
+  const id     = props.district_id || props.DISTRICT || '?';
+  const winner = props.winner;
+  const dem    = props.dem_pct;
+  const demV   = props.dem_votes;
+  const repV   = props.rep_votes;
+
+  let html = `<strong>District ${id}</strong>`;
+  if (winner) {
+    const cls = winner === 'D' ? 'dem' : 'rep';
+    const pct = dem != null ? (dem*100).toFixed(1) : '—';
+    html += `<br><span class="stat-val ${cls}">${winner} wins — ${pct}% Dem</span>`;
+  }
+  if (demV != null && repV != null) {
+    html += `<br><span style="color:var(--gray);font-size:.74rem">
+      D: ${demV.toLocaleString()} · R: ${repV.toLocaleString()}
+    </span>`;
+  }
+  body.innerHTML = html;
+  card.style.display = 'block';
+}
+
+function _buildTimeline(chamber, cycles) {
+  const slider = document.getElementById('timeline-slider');
+  const ticksEl = document.getElementById('timeline-ticks');
+  const eventsEl = document.getElementById('timeline-events');
+  if (!slider || !ticksEl) return;
+
+  slider.min = 0;
+  slider.max = cycles.length - 1;
+  slider.value = _historyYearIdx;
+
+  // Tick marks
+  ticksEl.innerHTML = cycles.map((c, i) => {
+    const cls = [
+      i === _historyYearIdx ? 'active' : '',
+      c.has_boundaries || c.year === 2021 ? 'has-data' : 'no-data',
+    ].filter(Boolean).join(' ');
+    const tip = c.has_boundaries ? '' : ' (not downloaded yet)';
+    return `<div class="timeline-tick ${cls}" data-idx="${i}" title="${c.label}${tip}">
+      <div class="timeline-tick-dot"></div>
+      <div class="timeline-tick-label">${c.year}</div>
+    </div>`;
+  }).join('');
+
+  // Click on tick = jump to year
+  ticksEl.querySelectorAll('.timeline-tick').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx);
+      _historyYearIdx = idx;
+      slider.value = idx;
+      _historyMapLoadData(_historyChamber, _historyCycles[idx]);
+    });
+  });
+
+  // Slider drag
+  slider.addEventListener('input', () => {
+    _historyYearIdx = parseInt(slider.value);
+    _historyMapLoadData(_historyChamber, _historyCycles[_historyYearIdx]);
+  });
+
+  // Global events list
+  if (eventsEl) {
+    eventsEl.innerHTML = GA_TIMELINE_EVENTS.map(ev => `
+      <div class="timeline-event-item">
+        <div class="timeline-event-dot ${ev.type}"></div>
+        <span class="timeline-event-year">${ev.year}</span>
+        <span class="timeline-event-text">${ev.label}</span>
+      </div>`).join('');
+  }
+
+  // Kick off loading the initial year
+  if (cycles.length && _historyMap?.isStyleLoaded()) {
+    _historyMapLoadData(chamber, cycles[_historyYearIdx]);
+  }
+}
+
+function _updateTimeline(selectedYear) {
+  document.querySelectorAll('.timeline-tick').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const isActive = _historyCycles[idx]?.year === selectedYear;
+    el.classList.toggle('active', isActive);
+  });
+}
+
 // ── Nav ───────────────────────────────────────────────────────────────────────
 function renderChamberTabs(available) {
   const el=document.getElementById('chamber-tabs');
@@ -943,22 +1502,39 @@ function renderViewTabs() {
 }
 
 function renderActiveView() {
-  if (activeView==='sources'){renderSourcesView();return;}
+  // Tear down Leaflet map when leaving that view
+  if (activeView !== 'map' && leafletMap) {
+    leafletMap.remove(); leafletMap = null;
+    districtLayer = null; stabilityLayer = null;
+  }
+  // Tear down Mapbox map when leaving history view
+  if (activeView !== 'history' && _historyMap) {
+    _historyMap.remove(); _historyMap = null;
+  }
+
+  if (activeView === 'sources') { renderSourcesView(); return; }
   if (!activeChamber) return;
-  if (activeView==='metrics') renderMetrics(activeChamber);
-  else if (activeView==='map') renderMapView(activeChamber);
-  else if (activeView==='run') renderRunView(activeChamber);
+  if (activeView === 'metrics') renderMetrics(activeChamber);
+  else if (activeView === 'history') renderHistoryView(activeChamber);
+  else if (activeView === 'map')     renderMapView(activeChamber);
+  else if (activeView === 'run')     renderRunView(activeChamber);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   try {
     const h=await fetchApi(`/health`).then(r=>r.json());
-    availableChambers=h.chambers_ready||[];
+    // New format: chambers_ready = ["GA/house", "GA/senate", ...]
+    // Legacy format: chambers_ready = ["house", "senate", ...]
+    const raw = h.chambers_ready || [];
+    availableChambers = raw
+      .filter(c => c.includes('/') ? c.startsWith(ACTIVE_STATE+'/') : true)
+      .map(c => c.includes('/') ? c.split('/')[1] : c);
   } catch(e) {
-    document.getElementById('main').innerHTML = IS_STATIC
-      ? `<div class="error">Static data not found. Run <code>scripts/export_static.py</code> and commit the <code>docs/</code> folder.</div>`
-      : `<div class="error">Cannot reach API. Start it with:<br><code>cd ~/codebox/fdga-chain && uv run uvicorn api.main:app --port 8001</code></div>`;
+    document.getElementById('main').innerHTML =
+      `<div class="error">Cannot reach API at <strong>${API_BASE}</strong>.<br>
+       To run locally: <code>cd ~/codebox/fdga-chain && uv run uvicorn api.main:app --port 8001</code><br>
+       For production: deploy the backend to Modal (see <code>modal_app.py</code>).</div>`;
     return;
   }
   // Pre-load chamber metadata for pre-populating the run form

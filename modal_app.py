@@ -46,22 +46,22 @@ app = modal.App("fdga-chain")
 @app.function(
     image=image,
     volumes={"/data": data_volume},
-    # CPU-only — GerryChain runs are multi-threaded but don't need GPU
     cpu=2,
     memory=4096,
-    # Allow up to 10 min for long ensemble runs
     timeout=600,
-    # Keep one warm container to avoid cold-start latency on the education UI
     keep_warm=1,
+    # Secrets: create once with `modal secret create fdga-chain-secrets MAPBOX_TOKEN=pk.xxx`
+    # or via the Modal dashboard → Secrets.
+    # Falls back gracefully if the secret doesn't exist yet.
+    secrets=[modal.Secret.from_name("fdga-chain-secrets", required=False)],
 )
 @modal.asgi_app()
 def api():
     import os
     import sys
 
-    # Point data loader at the volume mount
-    os.chdir("/")  # run from root so relative Path("data/...") hits the volume
-    sys.path.insert(0, "/root")  # ensure project modules are importable
+    os.chdir("/")
+    sys.path.insert(0, "/root")
 
     from api.main import app as fastapi_app
     return fastapi_app

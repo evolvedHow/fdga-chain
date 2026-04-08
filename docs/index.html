@@ -330,9 +330,11 @@ input[type=range].timeline-range::-moz-range-thumb{
 // Leave null to auto-detect: localhost in dev, Modal URL when hosted.
 window.API_BASE_OVERRIDE = null;
 
-// Mapbox token — paste your public token here (starts with pk.)
-// Get one free at https://account.mapbox.com/
-window.MAPBOX_TOKEN = null; // e.g. 'pk.eyJ1IjoieW91ci11c2VyIiwiYSI6Ii4uLiJ9...'
+// Mapbox token — loaded automatically from:
+//   1. /api/config  (Modal Secret or .env  — used when backend is running)
+//   2. GitHub Actions inject at deploy time (used for GitHub Pages static sandbox)
+// Do NOT paste a real token here — it will be blocked by GitHub push protection.
+window.MAPBOX_TOKEN = null; // __MAPBOX_TOKEN_INJECT__ ← replaced by CI, do not edit this line
 
 const API_BASE = window.API_BASE_OVERRIDE || (() => {
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
@@ -1520,8 +1522,19 @@ function renderActiveView() {
   else if (activeView === 'run')     renderRunView(activeChamber);
 }
 
+// ── Mapbox token bootstrap ────────────────────────────────────────────────────
+// Priority: already set (CI inject) → /api/config (Modal Secret / .env) → null
+async function initMapboxToken() {
+  if (window.MAPBOX_TOKEN) return;  // already injected by GitHub Actions
+  try {
+    const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.ok ? r.json() : null);
+    if (cfg?.mapbox_token) window.MAPBOX_TOKEN = cfg.mapbox_token;
+  } catch(e) { /* backend not reachable — token stays null, history tab shows notice */ }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
+  await initMapboxToken();
   try {
     const h=await fetchApi(`/health`).then(r=>r.json());
     // New format: chambers_ready = ["GA/house", "GA/senate", ...]

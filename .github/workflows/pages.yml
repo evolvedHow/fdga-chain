@@ -24,6 +24,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Copy frontend to docs
+        # Keep docs/index.html in sync with frontend/index.html
+        run: cp frontend/index.html docs/index.html
+
+      - name: Inject Mapbox token
+        # Replaces the placeholder line with the real token from GitHub Secrets.
+        # The token ends up in the deployed HTML (required — Mapbox GL JS is client-side).
+        # Restrict the token to your GitHub Pages domain in your Mapbox account for safety.
+        env:
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+        run: |
+          if [ -n "$MAPBOX_TOKEN" ]; then
+            sed -i "s|window.MAPBOX_TOKEN = null; // __MAPBOX_TOKEN_INJECT__.*|window.MAPBOX_TOKEN = '${MAPBOX_TOKEN}'; // injected by CI|g" docs/index.html
+            echo "Mapbox token injected into docs/index.html"
+          else
+            echo "MAPBOX_TOKEN secret not set — History tab will prompt for token"
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

@@ -30,7 +30,11 @@ Run:
 """
 
 import json
+import os
 import subprocess
+from dotenv import load_dotenv
+
+load_dotenv()  # reads .env if present (no-op in Modal where env vars come from Secrets)
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -194,6 +198,20 @@ def _enacted_comparison(state: str, chamber: str) -> dict:
 @app.get("/")
 def serve_index():
     return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/api/config")
+def api_config():
+    """
+    Public config for the frontend. Returns non-sensitive settings and
+    client-facing tokens (Mapbox public key is intentionally public —
+    restrict it by URL in your Mapbox dashboard, not by keeping it secret).
+    Reads from environment variables set via .env or Modal Secrets.
+    """
+    return {
+        "mapbox_token": os.environ.get("MAPBOX_TOKEN", ""),
+        "active_state": os.environ.get("ACTIVE_STATE", "GA"),
+    }
 
 
 @app.get("/health")

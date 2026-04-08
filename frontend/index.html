@@ -178,6 +178,54 @@ main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
 .section-title{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gray);margin-bottom:.7rem}
 footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
 
+/* ── Impact tab ── */
+.impact-header{background:var(--card);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow);margin-bottom:1rem}
+.impact-header h2{font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:.2rem}
+.impact-header p{font-size:.82rem;color:var(--gray);line-height:1.5}
+
+.impact-chart-card{background:var(--card);border-radius:10px;box-shadow:var(--shadow);padding:1.1rem 1.3rem;margin-bottom:1rem}
+.impact-chart-card h3{font-size:.88rem;font-weight:700;color:var(--blue);margin-bottom:.2rem}
+.impact-chart-card .subtitle{font-size:.76rem;color:var(--gray);margin-bottom:.85rem;line-height:1.4}
+.impact-chart-wrap{position:relative}
+.impact-no-data{
+  background:var(--light);border-radius:8px;padding:1.2rem 1.4rem;
+  font-size:.82rem;color:var(--gray);line-height:1.6;border:1px dashed var(--border);
+}
+.impact-no-data code{background:#e8edf4;padding:.1rem .35rem;border-radius:3px;font-size:.78rem}
+
+.impact-eg-zero{
+  position:absolute;top:0;bottom:0;pointer-events:none;
+  border-left:2px dashed #888;opacity:.45;
+}
+.impact-legend{display:flex;gap:1rem;margin-top:.5rem;flex-wrap:wrap}
+.impact-legend-item{display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--gray)}
+.impact-legend-swatch{width:12px;height:12px;border-radius:2px;flex-shrink:0}
+
+/* Seats-votes scatter */
+.sv-canvas-wrap{position:relative}
+.sv-canvas-wrap canvas{display:block}
+
+/* Map tab improvements */
+.map-search-wrap{display:flex;gap:.4rem;margin-bottom:.6rem}
+.map-search-wrap input{
+  flex:1;font-size:.82rem;padding:.36rem .6rem;border-radius:6px;
+  border:1px solid var(--border);outline:none;
+}
+.map-search-wrap input:focus{border-color:var(--blue)}
+.map-search-wrap button{
+  background:var(--blue);color:#fff;border:none;border-radius:6px;
+  padding:.36rem .7rem;font-size:.8rem;cursor:pointer;white-space:nowrap;
+}
+.map-search-wrap button:hover{background:#163e78}
+.map-layer-toggles{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem}
+.map-layer-btn{
+  background:var(--light);border:1.5px solid var(--border);border-radius:6px;
+  padding:.32rem .6rem;font-size:.78rem;font-weight:600;cursor:pointer;
+  color:var(--gray);text-align:left;transition:all .12s;
+}
+.map-layer-btn.active{background:#e8f0fb;border-color:var(--blue);color:var(--blue)}
+.map-layer-btn:hover:not(.active){border-color:#aab}
+
 /* ── History / Timeline view ── */
 .history-layout{display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start}
 @media(max-width:860px){.history-layout{grid-template-columns:1fr}}
@@ -305,6 +353,7 @@ input[type=range].timeline-range::-moz-range-thumb{
   <div class="nav-tabs" id="view-tabs">
     <div class="nav-tab active" data-view="metrics">Metrics</div>
     <div class="nav-tab" data-view="history">History</div>
+    <div class="nav-tab" data-view="impact">Impact</div>
     <div class="nav-tab" data-view="map">Map</div>
     <div class="nav-tab" data-view="run">Run Analysis</div>
     <div class="nav-tab" data-view="sources">Sources &amp; Config</div>
@@ -698,13 +747,446 @@ async function renderMetrics(chamber) {
   });
 }
 
+// ── Impact view (Phase 4) ─────────────────────────────────────────────────────
+const _impactCharts = {};
+
+async function renderImpactView(chamber) {
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="loading">Loading historical data…</div>';
+
+  // Destroy any lingering Chart.js instances from this tab
+  Object.keys(_impactCharts).forEach(k => { _impactCharts[k]?.destroy(); delete _impactCharts[k]; });
+
+  // Load state config for cycle list
+  let cycles = [];
+  try {
+    const cfg = await fetchApi(`/api/states/${ACTIVE_STATE}/info`).then(r => r.json());
+    cycles = cfg.cycles || [];
+  } catch(e) {
+    cycles = [{year:2001},{year:2005},{year:2011},{year:2021}];
+  }
+
+  // Try to fetch metrics for every cycle (most may 404 until pipeline runs)
+  const metricsByYear = {};
+  await Promise.allSettled(
+    cycles.map(async c => {
+      try {
+        const r = await fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/metrics/${c.year}`);
+        if (r.ok) metricsByYear[c.year] = await r.json();
+      } catch(e) {}
+    })
+  );
+
+  const years      = cycles.map(c => c.year);
+  const hasAny     = Object.keys(metricsByYear).length > 0;
+  const chamberLabel = {house:'State House',senate:'State Senate',congress:'U.S. Congress'}[chamber] || chamber;
+
+  const noPipeline = `
+    <div class="impact-no-data">
+      No historical election data yet for this chamber.<br>
+      Run the data pipeline to unlock this view:<br><br>
+      <code>python scripts/fetch_boundaries.py --state GA</code><br>
+      <code>python scripts/fetch_elections.py --state GA</code><br>
+      <code>python scripts/compute_metrics.py --state GA</code>
+    </div>`;
+
+  main.innerHTML = `
+    <div class="impact-header">
+      <h2>Gerrymandering Impact — Georgia ${chamberLabel}</h2>
+      <p>
+        These charts compare each redistricting cycle on three key fairness measures.
+        Deviations from zero indicate systematic partisan advantage.
+        All metrics computed from the first general election held on each cycle's maps.
+      </p>
+    </div>
+
+    <div class="impact-chart-card">
+      <h3>Efficiency Gap Over Time</h3>
+      <div class="subtitle">
+        (D wasted votes − R wasted votes) / total votes. Positive = Republican advantage.
+        The ±8% zone is the academic threshold flagged in <em>Stephanopoulos & McGhee (2015)</em>.
+      </div>
+      ${hasAny ? `<div class="impact-chart-wrap" style="height:140px"><canvas id="chart-eg"></canvas></div>
+        <div class="impact-legend">
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>Favors Republicans</div>
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>Favors Democrats</div>
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:#ddd;border:1px dashed #999"></div>±8% threshold</div>
+        </div>` : noPipeline}
+    </div>
+
+    <div class="impact-chart-card">
+      <h3>Seats vs. Votes — Proportionality Gap</h3>
+      <div class="subtitle">
+        Each dot is one redistricting cycle. The diagonal line is perfect proportionality (seat share = vote share).
+        Points above the line = party wins more seats than its vote share warrants.
+      </div>
+      ${hasAny ? `<div class="sv-canvas-wrap" style="height:280px"><canvas id="chart-sv"></canvas></div>` : noPipeline}
+    </div>
+
+    <div class="impact-chart-card">
+      <h3>Wasted Votes by Cycle</h3>
+      <div class="subtitle">
+        Votes cast for a losing candidate (all wasted) + votes beyond the winning threshold (excess).
+        A large gap between D and R bars signals packing or cracking.
+      </div>
+      ${hasAny ? `<div class="impact-chart-wrap" style="height:180px"><canvas id="chart-wv"></canvas></div>
+        <div class="impact-legend">
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>Democratic wasted votes</div>
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>Republican wasted votes</div>
+        </div>` : noPipeline}
+    </div>`;
+
+  if (!hasAny) return;
+
+  // ── Build charts ──────────────────────────────────────────────────────────
+
+  const yearLabels = years.map(y => String(y));
+  const egVals  = years.map(y => metricsByYear[y]?.efficiency_gap ?? null);
+  const demSeat = years.map(y => metricsByYear[y]?.dem_seat_share ?? null);
+  const demVote = years.map(y => metricsByYear[y]?.dem_vote_share ?? null);
+  const wDem    = years.map(y => metricsByYear[y] ? (metricsByYear[y].wasted_dem_pct * 100) : null);
+  const wRep    = years.map(y => metricsByYear[y] ? (metricsByYear[y].wasted_rep_pct * 100) : null);
+
+  const egColors = egVals.map(v => v === null ? '#ccc' : v > 0 ? 'rgba(192,57,43,.75)' : 'rgba(26,75,140,.75)');
+
+  // Chart 1 — Efficiency Gap
+  _impactCharts['eg'] = new Chart(document.getElementById('chart-eg'), {
+    type: 'bar',
+    data: {
+      labels: yearLabels,
+      datasets: [{
+        label: 'Efficiency Gap',
+        data: egVals.map(v => v !== null ? +(v * 100).toFixed(2) : null),
+        backgroundColor: egColors,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {label: i => `${i.raw > 0 ? '+' : ''}${i.raw?.toFixed(1)}% (favors ${i.raw > 0 ? 'R' : 'D'})`}},
+        annotation: {annotations: {
+          zero: {type:'line', xMin:0, xMax:0, borderColor:'#555', borderWidth:1.5, borderDash:[4,3]},
+          pos8: {type:'line', xMin:8, xMax:8, borderColor:'#c44', borderWidth:1, borderDash:[3,4], label:{display:true, content:'+8%', position:'start', color:'#c44', font:{size:9}}},
+          neg8: {type:'line', xMin:-8, xMax:-8, borderColor:'#44c', borderWidth:1, borderDash:[3,4], label:{display:true, content:'−8%', position:'start', color:'#44c', font:{size:9}}},
+        }},
+      },
+      scales: {
+        x: {title:{display:true, text:'Efficiency Gap (%)', font:{size:10}}, grid:{color:'rgba(0,0,0,.06)'}},
+        y: {ticks:{font:{size:11}}},
+      },
+    },
+  });
+
+  // Chart 2 — Seats vs Votes scatter
+  const svPoints = years
+    .filter(y => demVote[years.indexOf(y)] !== null && demSeat[years.indexOf(y)] !== null)
+    .map(y => ({
+      x: +(demVote[years.indexOf(y)] * 100).toFixed(1),
+      y: +(demSeat[years.indexOf(y)] * 100).toFixed(1),
+      label: String(y),
+    }));
+
+  // Diagonal proportionality line across the full chart range
+  const propLine = [{x:30, y:30}, {x:70, y:70}];
+
+  _impactCharts['sv'] = new Chart(document.getElementById('chart-sv'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Redistricting Cycle',
+          data: svPoints,
+          backgroundColor: svPoints.map((_, i) => `hsl(${210 + i*40},65%,48%)`),
+          pointRadius: 9,
+          pointHoverRadius: 11,
+        },
+        {
+          label: 'Perfect proportionality',
+          data: propLine,
+          type: 'line',
+          borderColor: '#aaa',
+          borderDash: [5, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+        },
+      ],
+    },
+    plugins: [{
+      // Draw year labels on each scatter point
+      afterDraw(chart) {
+        const {ctx} = chart;
+        const ds = chart.data.datasets[0];
+        const meta = chart.getDatasetMeta(0);
+        ctx.save();
+        ctx.font = 'bold 11px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        meta.data.forEach((pt, i) => {
+          ctx.fillStyle = '#333';
+          ctx.fillText(svPoints[i]?.label ?? '', pt.x, pt.y - 8);
+        });
+        ctx.restore();
+      },
+    }],
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          filter: item => item.datasetIndex === 0,
+          callbacks: {
+            label: i => `${i.raw.label}: D votes ${i.raw.x}% → D seats ${i.raw.y}%`,
+          },
+        },
+      },
+      scales: {
+        x: {min:30, max:70, title:{display:true, text:'Democratic Vote Share (%)', font:{size:10}}, grid:{color:'rgba(0,0,0,.06)'}},
+        y: {min:20, max:80, title:{display:true, text:'Democratic Seat Share (%)', font:{size:10}}, grid:{color:'rgba(0,0,0,.06)'}},
+      },
+    },
+  });
+
+  // Chart 3 — Wasted Votes
+  _impactCharts['wv'] = new Chart(document.getElementById('chart-wv'), {
+    type: 'bar',
+    data: {
+      labels: yearLabels,
+      datasets: [
+        {label:'D wasted', data:wDem, backgroundColor:'rgba(26,75,140,.7)', borderRadius:3},
+        {label:'R wasted', data:wRep, backgroundColor:'rgba(192,57,43,.7)', borderRadius:3},
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {display:false},
+        tooltip: {callbacks: {label: i => `${i.dataset.label}: ${i.raw?.toFixed(1)}% of all votes`}},
+      },
+      scales: {
+        x: {ticks:{font:{size:11}}},
+        y: {title:{display:true, text:'% of total votes', font:{size:10}}, grid:{color:'rgba(0,0,0,.06)'}},
+      },
+    },
+  });
+}
+
 // ── Map view ──────────────────────────────────────────────────────────────────
+let _mapboxMapTab = null;  // Mapbox instance for the Map tab
+
 async function renderMapView(chamber) {
+  const main = document.getElementById('main');
+
+  // If no Mapbox token, fall back to the simpler Leaflet map
+  if (!window.MAPBOX_TOKEN) {
+    return _renderMapLeaflet(chamber);
+  }
+
+  if (_mapboxMapTab) { _mapboxMapTab.remove(); _mapboxMapTab = null; }
+
+  main.innerHTML = `
+    <div class="map-layout">
+      <div class="map-controls">
+        <h3>Map</h3>
+
+        <label style="font-size:.72rem;font-weight:700;color:var(--gray);display:block;margin-bottom:.25rem">FIND YOUR DISTRICT</label>
+        <div class="map-search-wrap">
+          <input id="map-search-input" type="text" placeholder="Enter address…">
+          <button id="map-search-btn">Go</button>
+        </div>
+        <p id="map-search-info" style="font-size:.72rem;color:var(--gray);margin-bottom:.6rem;min-height:.9rem"></p>
+
+        <label style="font-size:.72rem;font-weight:700;color:var(--gray);display:block;margin-bottom:.25rem">LAYER</label>
+        <div class="map-layer-toggles">
+          <button class="map-layer-btn active" data-layer="districts">Enacted Districts</button>
+          <button class="map-layer-btn" data-layer="stability">Stability Heatmap</button>
+        </div>
+
+        <div class="map-legend" id="map-legend" style="display:none">
+          <div class="legend-title" id="legend-title"></div>
+          <div class="legend-bar"  id="legend-bar"></div>
+          <div class="legend-labels" id="legend-labels"></div>
+        </div>
+        <p class="map-info" id="map-info" style="margin-top:.5rem"></p>
+      </div>
+      <div class="map-container"><div id="mapbox-map-tab" style="height:100%;width:100%"></div></div>
+    </div>`;
+
+  mapboxgl.accessToken = window.MAPBOX_TOKEN;
+  _mapboxMapTab = new mapboxgl.Map({
+    container: 'mapbox-map-tab',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [-83.5, 32.7],
+    zoom: 6,
+  });
+  _mapboxMapTab.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+  const popup = new mapboxgl.Popup({closeButton:false, closeOnClick:false});
+  let activeLayer = 'districts';
+  let geoCache = {};
+
+  async function loadLayer(layerName) {
+    const infoEl = document.getElementById('map-info');
+    if (infoEl) infoEl.textContent = 'Loading…';
+
+    // Fetch GeoJSON
+    let geo;
+    if (geoCache[layerName]) {
+      geo = geoCache[layerName];
+    } else {
+      try {
+        const url = layerName === 'districts'
+          ? `/api/maps/${chamber}/enacted`
+          : `/api/maps/${chamber}/stability`;
+        const r = await fetchApi(url);
+        geo = await r.json();
+        if (geo.detail) { if (infoEl) infoEl.textContent = geo.detail; return; }
+        // Add numeric ids for feature-state
+        geo.features = geo.features.map((f, i) => ({...f, id: i}));
+        geoCache[layerName] = geo;
+      } catch(e) { if (infoEl) infoEl.textContent = 'Error loading layer: ' + e.message; return; }
+    }
+
+    // Remove previous layers/source
+    ['fill-layer','outline-layer','outline-hover-layer'].forEach(id => {
+      if (_mapboxMapTab.getLayer(id)) _mapboxMapTab.removeLayer(id);
+    });
+    if (_mapboxMapTab.getSource('map-data')) _mapboxMapTab.removeSource('map-data');
+
+    _mapboxMapTab.addSource('map-data', {type:'geojson', data:geo, generateId:false});
+
+    if (layerName === 'districts') {
+      const total = geo.features.length;
+      _mapboxMapTab.addLayer({
+        id:'fill-layer', type:'fill', source:'map-data',
+        paint:{
+          'fill-color': ['interpolate',['linear'],
+            ['to-number',['coalesce',['get','DISTRICT'],['get','district_id'],0]],
+            1,  '#e84393',
+            Math.ceil(total/4),  '#f5a623',
+            Math.ceil(total/2),  '#7ed321',
+            Math.ceil(total*3/4),'#4a90e2',
+            total, '#9013fe',
+          ],
+          'fill-opacity':['case',['boolean',['feature-state','hover'],false],.8,.5],
+        },
+      });
+      _mapboxMapTab.addLayer({id:'outline-layer',type:'line',source:'map-data',paint:{'line-color':'#fff','line-width':1}});
+      _mapboxMapTab.addLayer({id:'outline-hover-layer',type:'line',source:'map-data',
+        paint:{'line-color':'#111','line-width':2.5},filter:['==',['id'],-1]});
+
+      const legend=document.getElementById('map-legend');
+      if(legend){
+        legend.style.display='block';
+        document.getElementById('legend-title').textContent='District';
+        document.getElementById('legend-bar').innerHTML=`<div style="flex:1;background:linear-gradient(to right,#e84393,#f5a623,#7ed321,#4a90e2,#9013fe)"></div>`;
+        document.getElementById('legend-labels').innerHTML=`<span>1</span><span>${total}</span>`;
+      }
+      if (infoEl) infoEl.textContent = `${total} enacted districts. Click any district for details.`;
+
+    } else {
+      _mapboxMapTab.addLayer({
+        id:'fill-layer', type:'fill', source:'map-data',
+        paint:{
+          'fill-color':['case',['==',['get','stability'],null],'#ccc',
+            ['interpolate',['linear'],['get','stability'],0,'#dc3c3c',.5,'#e8b020',1,'#2a8a2a']],
+          'fill-opacity':.75,
+        },
+      });
+      _mapboxMapTab.addLayer({id:'outline-layer',type:'line',source:'map-data',paint:{'line-color':'rgba(0,0,0,.1)','line-width':.3}});
+
+      const legend=document.getElementById('map-legend');
+      if(legend){
+        legend.style.display='block';
+        document.getElementById('legend-title').textContent='Stability (% of neutral maps)';
+        document.getElementById('legend-bar').innerHTML=`<div style="flex:1;background:linear-gradient(to right,#dc3c3c,#e8b020,#2a8a2a)"></div>`;
+        document.getElementById('legend-labels').innerHTML=`<span>0% (contested)</span><span>100% (stable)</span>`;
+      }
+      if (infoEl) infoEl.textContent = 'Red = frequently redrawn boundary. Green = stable core that stays in place regardless of how maps are drawn.';
+    }
+
+    // Fit bounds
+    const bounds = new mapboxgl.LngLatBounds();
+    geo.features.forEach(f => {
+      const coords = f.geometry?.coordinates;
+      if (!coords) return;
+      const pts = f.geometry.type==='Polygon' ? coords[0] : f.geometry.type==='MultiPolygon' ? coords.flat(2) : [];
+      pts.forEach(c => bounds.extend(c));
+    });
+    if (!bounds.isEmpty()) _mapboxMapTab.fitBounds(bounds, {padding:30, duration:600});
+
+    // Hover interaction
+    let hoverId = null;
+    _mapboxMapTab.on('mousemove', 'fill-layer', e => {
+      if (!e.features?.length) return;
+      _mapboxMapTab.getCanvas().style.cursor = 'pointer';
+      if (hoverId !== null) _mapboxMapTab.setFeatureState({source:'map-data',id:hoverId},{hover:false});
+      hoverId = e.features[0].id;
+      _mapboxMapTab.setFeatureState({source:'map-data',id:hoverId},{hover:true});
+      if (layerName==='districts') _mapboxMapTab.setFilter('outline-hover-layer',['==',['id'],hoverId]);
+      const p = e.features[0].properties;
+      const distId = p.DISTRICT || p.district_id || '?';
+      const pop = p.POPULATION ? `<br>Pop: ${(+p.POPULATION).toLocaleString()}` : '';
+      const stab = p.stability != null ? `<br>Stability: ${(p.stability*100).toFixed(0)}%` : '';
+      popup.setLngLat(e.lngLat).setHTML(`<strong>District ${distId}</strong>${pop}${stab}`).addTo(_mapboxMapTab);
+    });
+    _mapboxMapTab.on('mouseleave', 'fill-layer', () => {
+      _mapboxMapTab.getCanvas().style.cursor = '';
+      if (hoverId !== null) { _mapboxMapTab.setFeatureState({source:'map-data',id:hoverId},{hover:false}); hoverId=null; }
+      if (layerName==='districts') _mapboxMapTab.setFilter('outline-hover-layer',['==',['id'],-1]);
+      popup.remove();
+    });
+  }
+
+  _mapboxMapTab.on('load', () => loadLayer('districts'));
+
+  // Layer toggle buttons
+  document.querySelectorAll('.map-layer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.map-layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeLayer = btn.dataset.layer;
+      loadLayer(activeLayer);
+    });
+  });
+
+  // District finder — Mapbox Geocoding API
+  async function findDistrict() {
+    const query = document.getElementById('map-search-input')?.value?.trim();
+    const infoEl = document.getElementById('map-search-info');
+    if (!query || !infoEl) return;
+    infoEl.textContent = 'Searching…';
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+        `?country=US&bbox=-85.6,30.4,-80.8,35.0&access_token=${window.MAPBOX_TOKEN}`;
+      const data = await fetch(url).then(r => r.json());
+      const feat = data.features?.[0];
+      if (!feat) { infoEl.textContent = 'Address not found in Georgia.'; return; }
+      const [lng, lat] = feat.geometry.coordinates;
+      _mapboxMapTab.flyTo({center:[lng,lat], zoom:10, duration:800});
+      new mapboxgl.Marker({color:var_blue()}).setLngLat([lng,lat])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${feat.place_name}</strong><br><em>Click a district for details</em>`))
+        .addTo(_mapboxMapTab).togglePopup();
+      infoEl.textContent = `Showing: ${feat.place_name}`;
+    } catch(e) { infoEl.textContent = 'Geocoding error: ' + e.message; }
+  }
+
+  document.getElementById('map-search-btn')?.addEventListener('click', findDistrict);
+  document.getElementById('map-search-input')?.addEventListener('keydown', e => { if(e.key==='Enter') findDistrict(); });
+}
+
+function var_blue() { return getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#1a4b8c'; }
+
+// ── Leaflet fallback (no Mapbox token) ───────────────────────────────────────
+async function _renderMapLeaflet(chamber) {
   const main = document.getElementById('main');
   main.innerHTML = `
     <div class="map-layout">
       <div class="map-controls">
-        <h3>🗺 Map Layer</h3>
+        <h3>Map Layer</h3>
         <div><label>Display</label>
           <select id="map-mode-select">
             <option value="enacted">Enacted Districts</option>
@@ -714,10 +1196,13 @@ async function renderMapView(chamber) {
         <button id="map-load-btn">Load Map</button>
         <div class="map-legend" id="map-legend" style="display:none">
           <div class="legend-title" id="legend-title"></div>
-          <div class="legend-bar" id="legend-bar"></div>
+          <div class="legend-bar"  id="legend-bar"></div>
           <div class="legend-labels" id="legend-labels"></div>
         </div>
         <p class="map-info" id="map-info"></p>
+        <p style="font-size:.71rem;color:var(--gray);margin-top:.8rem;line-height:1.4">
+          Add a Mapbox token for interactive district search and better styling.
+        </p>
       </div>
       <div class="map-container"><div id="leaflet-map"></div></div>
     </div>`;
@@ -727,41 +1212,32 @@ async function renderMapView(chamber) {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',opacity:.35}).addTo(leafletMap);
 
   async function loadLayer() {
-    const btn = document.getElementById('map-load-btn');
+    const btn=document.getElementById('map-load-btn');
     btn.disabled=true; btn.textContent='Loading…';
     if (districtLayer){leafletMap.removeLayer(districtLayer);districtLayer=null;}
     if (stabilityLayer){leafletMap.removeLayer(stabilityLayer);stabilityLayer=null;}
-    const mode = document.getElementById('map-mode-select').value;
-    const legend=document.getElementById('map-legend');
+    const mode=document.getElementById('map-mode-select').value;
     const info=document.getElementById('map-info');
     try {
       if (mode==='enacted') {
-        const geo = await fetchApi(`/api/maps/${chamber}/enacted`).then(r=>r.json());
-        const total = geo.features.length;
-        districtLayer = L.geoJSON(geo,{
+        const geo=await fetchApi(`/api/maps/${chamber}/enacted`).then(r=>r.json());
+        const total=geo.features.length;
+        districtLayer=L.geoJSON(geo,{
           style:f=>({fillColor:districtColor(f.properties.DISTRICT,total),fillOpacity:.55,color:'#fff',weight:1.2}),
-          onEachFeature:(f,l)=>{const p=f.properties;l.bindPopup(`<b>District ${p.DISTRICT}</b><br>Population: ${(p.POPULATION||0).toLocaleString()}`)}
+          onEachFeature:(f,l)=>{const p=f.properties;l.bindPopup(`<b>District ${p.DISTRICT}</b><br>Pop: ${(p.POPULATION||0).toLocaleString()}`)}
         }).addTo(leafletMap);
         leafletMap.fitBounds(districtLayer.getBounds(),{padding:[20,20]});
-        legend.style.display='block';
-        document.getElementById('legend-title').textContent='District ID';
-        document.getElementById('legend-bar').innerHTML=Array.from({length:20},(_,i)=>`<div style="flex:1;background:${districtColor(i*total/20,total)}"></div>`).join('');
-        document.getElementById('legend-labels').innerHTML=`<span>District 1</span><span>District ${total}</span>`;
-        info.textContent=`${total} enacted districts. Click any district for population details.`;
+        info.textContent=`${total} enacted districts.`;
       } else {
         info.textContent='Loading stability data…';
-        const geo = await fetchApi(`/api/maps/${chamber}/stability`).then(r=>r.json());
-        if (geo.detail){info.textContent=geo.detail;btn.disabled=false;btn.textContent='Load Map';return;}
-        stabilityLayer = L.geoJSON(geo,{
+        const geo=await fetchApi(`/api/maps/${chamber}/stability`).then(r=>r.json());
+        if(geo.detail){info.textContent=geo.detail;btn.disabled=false;btn.textContent='Load Map';return;}
+        stabilityLayer=L.geoJSON(geo,{
           style:f=>({fillColor:stabilityColor(f.properties.stability),fillOpacity:.75,color:'none',weight:0}),
-          onEachFeature:(f,l)=>{const p=f.properties;const pct=p.stability!=null?(p.stability*100).toFixed(0)+'%':'n/a';l.bindPopup(`<b>District ${p.district}</b><br>Stability: ${pct}<br><small>${pct} of neutral maps assign this precinct to the same district</small>`)}
+          onEachFeature:(f,l)=>{const p=f.properties;const pct=p.stability!=null?(p.stability*100).toFixed(0)+'%':'n/a';l.bindPopup(`<b>District ${p.district}</b><br>Stability: ${pct}`)}
         }).addTo(leafletMap);
         leafletMap.fitBounds(stabilityLayer.getBounds(),{padding:[20,20]});
-        legend.style.display='block';
-        document.getElementById('legend-title').textContent='Stability (% of neutral maps matching enacted assignment)';
-        document.getElementById('legend-bar').innerHTML=['#dc3c3c','#c07028','#909020','#40b440','#2a8a2a'].map(c=>`<div style="flex:1;background:${c}"></div>`).join('');
-        document.getElementById('legend-labels').innerHTML=`<span>0% (often redrawn)</span><span>100% (always here)</span>`;
-        info.textContent='🔴 Red = precincts frequently assigned differently in neutral maps (contested boundary). 🟢 Green = stable core areas that stay put regardless of how the map is drawn.';
+        info.textContent='Red = contested boundary. Green = stable.';
       }
     } catch(e){info.textContent='Error: '+e.message;}
     btn.disabled=false; btn.textContent='Load Map';
@@ -1525,20 +2001,17 @@ function renderViewTabs() {
 }
 
 function renderActiveView() {
-  // Tear down Leaflet map when leaving that view
-  if (activeView !== 'map' && leafletMap) {
-    leafletMap.remove(); leafletMap = null;
-    districtLayer = null; stabilityLayer = null;
+  if (activeView !== 'map') {
+    if (leafletMap)       { leafletMap.remove(); leafletMap = null; districtLayer = null; stabilityLayer = null; }
+    if (_mapboxMapTab)    { _mapboxMapTab.remove(); _mapboxMapTab = null; }
   }
-  // Tear down Mapbox map when leaving history view
-  if (activeView !== 'history' && _historyMap) {
-    _historyMap.remove(); _historyMap = null;
-  }
+  if (activeView !== 'history' && _historyMap) { _historyMap.remove(); _historyMap = null; }
 
   if (activeView === 'sources') { renderSourcesView(); return; }
   if (!activeChamber) return;
-  if (activeView === 'metrics') renderMetrics(activeChamber);
+  if      (activeView === 'metrics') renderMetrics(activeChamber);
   else if (activeView === 'history') renderHistoryView(activeChamber);
+  else if (activeView === 'impact')  renderImpactView(activeChamber);
   else if (activeView === 'map')     renderMapView(activeChamber);
   else if (activeView === 'run')     renderRunView(activeChamber);
 }

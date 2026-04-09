@@ -32,19 +32,19 @@ Best source — Redistricting Data Hub (pre-clipped, pre-labeled):
 
 Second source — Census TIGER/Line (all-state files, larger):
   Congressional:
-    https://www2.census.gov/geo/tiger/TIGER2022/CD/tl_2022_us_cd118.zip   (2021 maps)
-    https://www2.census.gov/geo/tiger/TIGER2014/CD/tl_2014_us_cd113.zip   (2011 maps)
-    https://www2.census.gov/geo/tiger/TIGER2010/CD/500/tl_2010_13_cd111.zip (2001 maps, GA only)
+    https://www2.census.gov/geo/tiger/TIGER2022/CD/tl_2022_13_cd118.zip      (2021 maps, GA)
+    https://www2.census.gov/geo/tiger/TIGER2013/CD/tl_2013_us_cd113.zip      (2011 maps, national — filtered to GA)
+    https://www2.census.gov/geo/tiger/TIGER2010/CD/111/tl_2010_13_cd111.zip  (2001 maps, GA)
 
   State House (SLDL):
-    https://www2.census.gov/geo/tiger/TIGER2022/SLDL/tl_2022_13_sldl.zip  (2021)
-    https://www2.census.gov/geo/tiger/TIGER2012/SLDL/tl_2012_13_sldl.zip  (2011)
-    https://www2.census.gov/geo/tiger/TIGER2010/SLDL/tl_2010_13_sldl.zip  (2001/2005)
+    https://www2.census.gov/geo/tiger/TIGER2022/SLDL/tl_2022_13_sldl.zip            (2021)
+    https://www2.census.gov/geo/tiger/TIGER2012/SLDL/tl_2012_13_sldl.zip            (2011)
+    https://www2.census.gov/geo/tiger/TIGER2010/SLDL/2010/tl_2010_13_sldl10.zip     (2001/2005)
 
   State Senate (SLDU):
-    https://www2.census.gov/geo/tiger/TIGER2022/SLDU/tl_2022_13_sldu.zip  (2021)
-    https://www2.census.gov/geo/tiger/TIGER2012/SLDU/tl_2012_13_sldu.zip  (2011)
-    https://www2.census.gov/geo/tiger/TIGER2010/SLDU/tl_2010_13_sldu.zip  (2001/2005)
+    https://www2.census.gov/geo/tiger/TIGER2022/SLDU/tl_2022_13_sldu.zip            (2021)
+    https://www2.census.gov/geo/tiger/TIGER2012/SLDU/tl_2012_13_sldu.zip            (2011)
+    https://www2.census.gov/geo/tiger/TIGER2010/SLDU/2010/tl_2010_13_sldu10.zip     (2001/2005)
 
 Third source — Dave's Redistricting (best for 2021 enacted maps):
   https://davesredistricting.org/maps#state::GA
@@ -88,18 +88,20 @@ import geopandas as gpd
 
 # GA FIPS = 13. TIGER URLs below are GA-specific where possible.
 TIGER_URLS = {
-    # Congressional — note: pre-2013 TIGER files use full-US zips
-    ("GA", "congress", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/CD/500/tl_2010_13_cd111.zip",
-    ("GA", "congress", 2011): "https://www2.census.gov/geo/tiger/TIGER2014/CD/tl_2014_us_cd113.zip",
-    ("GA", "congress", 2021): "https://www2.census.gov/geo/tiger/TIGER2022/CD/tl_2022_us_cd118.zip",
-    # State House (SLDL)
-    ("GA", "house", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/SLDL/tl_2010_13_sldl.zip",
-    ("GA", "house", 2005): "https://www2.census.gov/geo/tiger/TIGER2010/SLDL/tl_2010_13_sldl.zip",
+    # Congressional — GA-specific files (FIPS 13); 2011 uses national file filtered to GA
+    # Note: 2005 mid-decade redraw was state legislature only; congress used 2001 map through 2010
+    ("GA", "congress", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/CD/111/tl_2010_13_cd111.zip",
+    ("GA", "congress", 2005): "https://www2.census.gov/geo/tiger/TIGER2010/CD/111/tl_2010_13_cd111.zip",
+    ("GA", "congress", 2011): "https://www2.census.gov/geo/tiger/TIGER2013/CD/tl_2013_us_cd113.zip",
+    ("GA", "congress", 2021): "https://www2.census.gov/geo/tiger/TIGER2022/CD/tl_2022_13_cd118.zip",
+    # State House (SLDL) — GA-specific files
+    ("GA", "house", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/SLDL/2010/tl_2010_13_sldl10.zip",
+    ("GA", "house", 2005): "https://www2.census.gov/geo/tiger/TIGER2010/SLDL/2010/tl_2010_13_sldl10.zip",
     ("GA", "house", 2011): "https://www2.census.gov/geo/tiger/TIGER2012/SLDL/tl_2012_13_sldl.zip",
     ("GA", "house", 2021): "https://www2.census.gov/geo/tiger/TIGER2022/SLDL/tl_2022_13_sldl.zip",
-    # State Senate (SLDU)
-    ("GA", "senate", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/SLDU/tl_2010_13_sldu.zip",
-    ("GA", "senate", 2005): "https://www2.census.gov/geo/tiger/TIGER2010/SLDU/tl_2010_13_sldu.zip",
+    # State Senate (SLDU) — GA-specific files
+    ("GA", "senate", 2001): "https://www2.census.gov/geo/tiger/TIGER2010/SLDU/2010/tl_2010_13_sldu10.zip",
+    ("GA", "senate", 2005): "https://www2.census.gov/geo/tiger/TIGER2010/SLDU/2010/tl_2010_13_sldu10.zip",
     ("GA", "senate", 2011): "https://www2.census.gov/geo/tiger/TIGER2012/SLDU/tl_2012_13_sldu.zip",
     ("GA", "senate", 2021): "https://www2.census.gov/geo/tiger/TIGER2022/SLDU/tl_2022_13_sldu.zip",
 }
@@ -226,7 +228,11 @@ def convert_to_geojson(shp_path: Path, state: str, out_path: Path) -> bool:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     gdf.to_file(str(out_path), driver="GeoJSON")
     size_kb = out_path.stat().st_size / 1024
-    print(f"    ✓ {out_path.relative_to(Path.cwd())}  ({len(gdf)} districts, {size_kb:.0f} kB)")
+    try:
+        rel = out_path.relative_to(Path.cwd())
+    except ValueError:
+        rel = out_path
+    print(f"    ✓ {rel}  ({len(gdf)} districts, {size_kb:.0f} kB)")
     return True
 
 

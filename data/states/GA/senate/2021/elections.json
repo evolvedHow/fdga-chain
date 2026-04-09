@@ -1,0 +1,519 @@
+{
+  "state": "GA",
+  "chamber": "senate",
+  "cycle_year": 2021,
+  "election_year": 2022,
+  "num_districts": 56,
+  "total_votes": 3591726,
+  "total_dem_votes": 1606415,
+  "total_rep_votes": 1985311,
+  "dem_vote_share": 0.4473,
+  "dem_seat_share": 0.4107,
+  "rep_seat_share": 0.5893,
+  "districts": [
+    {
+      "district_id": "1",
+      "dem_votes": 27106,
+      "rep_votes": 43080,
+      "total_votes": 70186,
+      "dem_pct": 0.3862,
+      "winner": "R",
+      "margin": 0.2276
+    },
+    {
+      "district_id": "2",
+      "dem_votes": 41553,
+      "rep_votes": 16203,
+      "total_votes": 57756,
+      "dem_pct": 0.7195,
+      "winner": "D",
+      "margin": 0.4389
+    },
+    {
+      "district_id": "3",
+      "dem_votes": 0,
+      "rep_votes": 54807,
+      "total_votes": 54807,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "4",
+      "dem_votes": 0,
+      "rep_votes": 53563,
+      "total_votes": 53563,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "5",
+      "dem_votes": 26340,
+      "rep_votes": 0,
+      "total_votes": 26340,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "6",
+      "dem_votes": 45076,
+      "rep_votes": 34607,
+      "total_votes": 79683,
+      "dem_pct": 0.5657,
+      "winner": "D",
+      "margin": 0.1314
+    },
+    {
+      "district_id": "7",
+      "dem_votes": 32665,
+      "rep_votes": 29148,
+      "total_votes": 61813,
+      "dem_pct": 0.5284,
+      "winner": "D",
+      "margin": 0.0569
+    },
+    {
+      "district_id": "8",
+      "dem_votes": 0,
+      "rep_votes": 47458,
+      "total_votes": 47458,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "9",
+      "dem_votes": 47638,
+      "rep_votes": 0,
+      "total_votes": 47638,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "10",
+      "dem_votes": 68240,
+      "rep_votes": 0,
+      "total_votes": 68240,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "11",
+      "dem_votes": 0,
+      "rep_votes": 49591,
+      "total_votes": 49591,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "12",
+      "dem_votes": 48102,
+      "rep_votes": 0,
+      "total_votes": 48102,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "13",
+      "dem_votes": 0,
+      "rep_votes": 54014,
+      "total_votes": 54014,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "14",
+      "dem_votes": 41353,
+      "rep_votes": 34257,
+      "total_votes": 75610,
+      "dem_pct": 0.5469,
+      "winner": "D",
+      "margin": 0.0939
+    },
+    {
+      "district_id": "15",
+      "dem_votes": 39953,
+      "rep_votes": 0,
+      "total_votes": 39953,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "16",
+      "dem_votes": 27048,
+      "rep_votes": 57965,
+      "total_votes": 85013,
+      "dem_pct": 0.3182,
+      "winner": "R",
+      "margin": 0.3637
+    },
+    {
+      "district_id": "17",
+      "dem_votes": 30929,
+      "rep_votes": 49532,
+      "total_votes": 80461,
+      "dem_pct": 0.3844,
+      "winner": "R",
+      "margin": 0.2312
+    },
+    {
+      "district_id": "18",
+      "dem_votes": 27372,
+      "rep_votes": 49581,
+      "total_votes": 76953,
+      "dem_pct": 0.3557,
+      "winner": "R",
+      "margin": 0.2886
+    },
+    {
+      "district_id": "19",
+      "dem_votes": 12308,
+      "rep_votes": 45431,
+      "total_votes": 57739,
+      "dem_pct": 0.2132,
+      "winner": "R",
+      "margin": 0.5737
+    },
+    {
+      "district_id": "20",
+      "dem_votes": 0,
+      "rep_votes": 59824,
+      "total_votes": 59824,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "21",
+      "dem_votes": 0,
+      "rep_votes": 73600,
+      "total_votes": 73600,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "22",
+      "dem_votes": 40676,
+      "rep_votes": 17077,
+      "total_votes": 57753,
+      "dem_pct": 0.7043,
+      "winner": "D",
+      "margin": 0.4086
+    },
+    {
+      "district_id": "23",
+      "dem_votes": 0,
+      "rep_votes": 53320,
+      "total_votes": 53320,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "24",
+      "dem_votes": 0,
+      "rep_votes": 72370,
+      "total_votes": 72370,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "25",
+      "dem_votes": 28777,
+      "rep_votes": 46289,
+      "total_votes": 75066,
+      "dem_pct": 0.3834,
+      "winner": "R",
+      "margin": 0.2333
+    },
+    {
+      "district_id": "26",
+      "dem_votes": 45293,
+      "rep_votes": 0,
+      "total_votes": 45293,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "27",
+      "dem_votes": 20551,
+      "rep_votes": 58096,
+      "total_votes": 78647,
+      "dem_pct": 0.2613,
+      "winner": "R",
+      "margin": 0.4774
+    },
+    {
+      "district_id": "28",
+      "dem_votes": 0,
+      "rep_votes": 67216,
+      "total_votes": 67216,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "29",
+      "dem_votes": 24628,
+      "rep_votes": 48339,
+      "total_votes": 72967,
+      "dem_pct": 0.3375,
+      "winner": "R",
+      "margin": 0.325
+    },
+    {
+      "district_id": "30",
+      "dem_votes": 0,
+      "rep_votes": 59251,
+      "total_votes": 59251,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "31",
+      "dem_votes": 0,
+      "rep_votes": 57843,
+      "total_votes": 57843,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "32",
+      "dem_votes": 29982,
+      "rep_votes": 48081,
+      "total_votes": 78063,
+      "dem_pct": 0.3841,
+      "winner": "R",
+      "margin": 0.2319
+    },
+    {
+      "district_id": "33",
+      "dem_votes": 47887,
+      "rep_votes": 0,
+      "total_votes": 47887,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "34",
+      "dem_votes": 44660,
+      "rep_votes": 8689,
+      "total_votes": 53349,
+      "dem_pct": 0.8371,
+      "winner": "D",
+      "margin": 0.6743
+    },
+    {
+      "district_id": "35",
+      "dem_votes": 62015,
+      "rep_votes": 0,
+      "total_votes": 62015,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "36",
+      "dem_votes": 63848,
+      "rep_votes": 0,
+      "total_votes": 63848,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "37",
+      "dem_votes": 36341,
+      "rep_votes": 51953,
+      "total_votes": 88294,
+      "dem_pct": 0.4116,
+      "winner": "R",
+      "margin": 0.1768
+    },
+    {
+      "district_id": "38",
+      "dem_votes": 64418,
+      "rep_votes": 0,
+      "total_votes": 64418,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "39",
+      "dem_votes": 60401,
+      "rep_votes": 0,
+      "total_votes": 60401,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "40",
+      "dem_votes": 39839,
+      "rep_votes": 24870,
+      "total_votes": 64709,
+      "dem_pct": 0.6157,
+      "winner": "D",
+      "margin": 0.2313
+    },
+    {
+      "district_id": "41",
+      "dem_votes": 51512,
+      "rep_votes": 11195,
+      "total_votes": 62707,
+      "dem_pct": 0.8215,
+      "winner": "D",
+      "margin": 0.6429
+    },
+    {
+      "district_id": "42",
+      "dem_votes": 77961,
+      "rep_votes": 0,
+      "total_votes": 77961,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "43",
+      "dem_votes": 51534,
+      "rep_votes": 17128,
+      "total_votes": 68662,
+      "dem_pct": 0.7505,
+      "winner": "D",
+      "margin": 0.5011
+    },
+    {
+      "district_id": "44",
+      "dem_votes": 61768,
+      "rep_votes": 0,
+      "total_votes": 61768,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "45",
+      "dem_votes": 26163,
+      "rep_votes": 41416,
+      "total_votes": 67579,
+      "dem_pct": 0.3871,
+      "winner": "R",
+      "margin": 0.2257
+    },
+    {
+      "district_id": "46",
+      "dem_votes": 27286,
+      "rep_votes": 48555,
+      "total_votes": 75841,
+      "dem_pct": 0.3598,
+      "winner": "R",
+      "margin": 0.2804
+    },
+    {
+      "district_id": "47",
+      "dem_votes": 27287,
+      "rep_votes": 44530,
+      "total_votes": 71817,
+      "dem_pct": 0.38,
+      "winner": "R",
+      "margin": 0.2401
+    },
+    {
+      "district_id": "48",
+      "dem_votes": 31635,
+      "rep_votes": 41464,
+      "total_votes": 73099,
+      "dem_pct": 0.4328,
+      "winner": "R",
+      "margin": 0.1345
+    },
+    {
+      "district_id": "49",
+      "dem_votes": 16919,
+      "rep_votes": 53106,
+      "total_votes": 70025,
+      "dem_pct": 0.2416,
+      "winner": "R",
+      "margin": 0.5168
+    },
+    {
+      "district_id": "50",
+      "dem_votes": 11151,
+      "rep_votes": 62105,
+      "total_votes": 73256,
+      "dem_pct": 0.1522,
+      "winner": "R",
+      "margin": 0.6956
+    },
+    {
+      "district_id": "51",
+      "dem_votes": 0,
+      "rep_votes": 79579,
+      "total_votes": 79579,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "52",
+      "dem_votes": 0,
+      "rep_votes": 57785,
+      "total_votes": 57785,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "53",
+      "dem_votes": 0,
+      "rep_votes": 56221,
+      "total_votes": 56221,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "54",
+      "dem_votes": 0,
+      "rep_votes": 48051,
+      "total_votes": 48051,
+      "dem_pct": 0.0,
+      "winner": "R",
+      "margin": 1.0
+    },
+    {
+      "district_id": "55",
+      "dem_votes": 62044,
+      "rep_votes": 0,
+      "total_votes": 62044,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "56",
+      "dem_votes": 36156,
+      "rep_votes": 58121,
+      "total_votes": 94277,
+      "dem_pct": 0.3835,
+      "winner": "R",
+      "margin": 0.233
+    }
+  ]
+}

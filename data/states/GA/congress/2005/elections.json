@@ -1,0 +1,132 @@
+{
+  "state": "GA",
+  "chamber": "congress",
+  "cycle_year": 2005,
+  "election_year": 2006,
+  "num_districts": 13,
+  "total_votes": 2070307,
+  "total_dem_votes": 932143,
+  "total_rep_votes": 1138048,
+  "dem_vote_share": 0.4503,
+  "dem_seat_share": 0.4615,
+  "rep_seat_share": 0.5385,
+  "districts": [
+    {
+      "district_id": "1",
+      "dem_votes": 43668,
+      "rep_votes": 94961,
+      "total_votes": 138629,
+      "dem_pct": 0.315,
+      "winner": "R",
+      "margin": 0.37
+    },
+    {
+      "district_id": "2",
+      "dem_votes": 88662,
+      "rep_votes": 41967,
+      "total_votes": 130629,
+      "dem_pct": 0.6787,
+      "winner": "D",
+      "margin": 0.3575
+    },
+    {
+      "district_id": "3",
+      "dem_votes": 62371,
+      "rep_votes": 130428,
+      "total_votes": 192799,
+      "dem_pct": 0.3235,
+      "winner": "R",
+      "margin": 0.353
+    },
+    {
+      "district_id": "4",
+      "dem_votes": 106352,
+      "rep_votes": 34778,
+      "total_votes": 141194,
+      "dem_pct": 0.7536,
+      "winner": "D",
+      "margin": 0.5071
+    },
+    {
+      "district_id": "5",
+      "dem_votes": 122380,
+      "rep_votes": 0,
+      "total_votes": 122428,
+      "dem_pct": 1.0,
+      "winner": "D",
+      "margin": 1.0
+    },
+    {
+      "district_id": "6",
+      "dem_votes": 55294,
+      "rep_votes": 144958,
+      "total_votes": 200252,
+      "dem_pct": 0.2761,
+      "winner": "R",
+      "margin": 0.4478
+    },
+    {
+      "district_id": "7",
+      "dem_votes": 53553,
+      "rep_votes": 130561,
+      "total_votes": 184114,
+      "dem_pct": 0.2909,
+      "winner": "R",
+      "margin": 0.4183
+    },
+    {
+      "district_id": "8",
+      "dem_votes": 80660,
+      "rep_votes": 78908,
+      "total_votes": 159568,
+      "dem_pct": 0.5055,
+      "winner": "D",
+      "margin": 0.011
+    },
+    {
+      "district_id": "9",
+      "dem_votes": 39240,
+      "rep_votes": 128685,
+      "total_votes": 167926,
+      "dem_pct": 0.2337,
+      "winner": "R",
+      "margin": 0.5326
+    },
+    {
+      "district_id": "10",
+      "dem_votes": 57032,
+      "rep_votes": 117721,
+      "total_votes": 174753,
+      "dem_pct": 0.3264,
+      "winner": "R",
+      "margin": 0.3473
+    },
+    {
+      "district_id": "11",
+      "dem_votes": 48261,
+      "rep_votes": 118524,
+      "total_votes": 166788,
+      "dem_pct": 0.2894,
+      "winner": "R",
+      "margin": 0.4213
+    },
+    {
+      "district_id": "12",
+      "dem_votes": 71651,
+      "rep_votes": 70787,
+      "total_votes": 142438,
+      "dem_pct": 0.503,
+      "winner": "D",
+      "margin": 0.0061
+    },
+    {
+      "district_id": "13",
+      "dem_votes": 103019,
+      "rep_votes": 45770,
+      "total_votes": 148789,
+      "dem_pct": 0.6924,
+      "winner": "D",
+      "margin": 0.3848
+    }
+  ]
+}

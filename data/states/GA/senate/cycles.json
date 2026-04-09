@@ -1,0 +1,38 @@
+[
+  {
+    "year": 2001,
+    "label": "2001 Redistricting",
+    "event": "Post-2000 Census",
+    "note": "Democrats controlled legislature",
+    "has_boundaries": true,
+    "has_elections": true,
+    "has_metrics": true
+  },
+  {
+    "year": 2005,
+    "label": "2005 Mid-decade Re-draw",
+    "event": "Mid-decade (unusual \u2014 Republicans took control in 2004)",
+    "note": "Republicans redrew maps after taking the legislature mid-decade",
+    "has_boundaries": true,
+    "has_elections": true,
+    "has_metrics": true
+  },
+  {
+    "year": 2011,
+    "label": "2011 Redistricting",
+    "event": "Post-2010 Census",
+    "note": "Republicans controlled legislature; required DOJ preclearance under VRA \u00a75",
+    "has_boundaries": true,
+    "has_elections": true,
+    "has_metrics": true
+  },
+  {
+    "year": 2021,
+    "label": "2021 Redistricting",
+    "event": "Post-2020 Census (current maps)",
+    "note": "Post-Shelby County v. Holder \u2014 no federal preclearance required",
+    "has_boundaries": true,
+    "has_elections": true,
+    "has_metrics": true
+  }
+]

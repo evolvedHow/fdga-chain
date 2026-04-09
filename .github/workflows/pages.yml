@@ -26,7 +26,14 @@ jobs:
 
       - name: Copy frontend to docs
         # Keep docs/index.html in sync with frontend/index.html
-        run: cp frontend/index.html docs/index.html
+        run: |
+          cp frontend/index.html docs/index.html
+          # Copy state pipeline data (boundaries, elections, metrics, cycles) into docs/
+          # so GitHub Pages can serve them when IS_STATIC=true (no backend)
+          if [ -d data/states ]; then
+            mkdir -p docs/data/states
+            cp -r data/states/* docs/data/states/
+          fi
 
       - name: Inject Mapbox token
         # Replaces the placeholder line with the real token from GitHub Secrets.

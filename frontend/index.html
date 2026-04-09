@@ -398,22 +398,54 @@ const IS_STATIC = !API_BASE;
 function pathToStatic(path) {
   const [bare, qs] = path.split('?');
   const params = new URLSearchParams(qs || '');
+
+  // ── Exact matches ────────────────────────────────────────────────────────
   if (bare === '/health')                   return 'data/health.json';
   if (bare === '/api/chambers')             return 'data/chambers.json';
   if (bare === '/api/info')                 return 'data/info.json';
   if (bare === '/api/algorithms')           return 'data/algorithms.json';
   if (bare === '/api/ensemble/runs')        return 'data/runs.json';
-  const enactedM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/ensemble\/enacted$/);
+
+  // ── State-aware routes (new pipeline data) ───────────────────────────────
+  // /api/states/{state}/info  →  data/states/{state}/config.json
+  const stateInfoM = bare.match(/^\/api\/states\/(\w+)\/info$/);
+  if (stateInfoM) return `data/states/${stateInfoM[1].toUpperCase()}/config.json`;
+
+  // /api/states/{state}/{chamber}/cycles  →  data/states/{state}/{chamber}/cycles.json
+  const cyclesM = bare.match(/^\/api\/states\/(\w+)\/(\w+)\/cycles$/);
+  if (cyclesM) return `data/states/${cyclesM[1].toUpperCase()}/${cyclesM[2]}/cycles.json`;
+
+  // /api/states/{state}/{chamber}/metrics/{year}  →  data/states/{state}/{chamber}/{year}/metrics.json
+  const cycleMetricsM = bare.match(/^\/api\/states\/(\w+)\/(\w+)\/metrics\/(\d+)$/);
+  if (cycleMetricsM) return `data/states/${cycleMetricsM[1].toUpperCase()}/${cycleMetricsM[2]}/${cycleMetricsM[3]}/metrics.json`;
+
+  // /api/states/{state}/{chamber}/elections/{year}  →  data/states/{state}/{chamber}/{year}/elections.json
+  const cycleElecM = bare.match(/^\/api\/states\/(\w+)\/(\w+)\/elections\/(\d+)$/);
+  if (cycleElecM) return `data/states/${cycleElecM[1].toUpperCase()}/${cycleElecM[2]}/${cycleElecM[3]}/elections.json`;
+
+  // /api/states/{state}/{chamber}/boundaries/{year}  →  data/states/{state}/{chamber}/{year}/boundaries.geojson
+  const boundaryM = bare.match(/^\/api\/states\/(\w+)\/(\w+)\/boundaries\/(\d+)$/);
+  if (boundaryM) return `data/states/${boundaryM[1].toUpperCase()}/${boundaryM[2]}/${boundaryM[3]}/boundaries.geojson`;
+
+  // ── Ensemble routes (Metrics tab) — handles both path orderings ──────────
+  // Formats: /api/ensemble/{chamber}/enacted  OR  /api/states/GA/{chamber}/ensemble/enacted
+  const enactedM = bare.match(/^\/api\/(?:states\/\w+\/|ensemble\/)?(\w+)(?:\/ensemble)?\/enacted$/);
   if (enactedM) return `data/${enactedM[1]}_enacted.json`;
-  const summaryM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/ensemble\/summary$/);
+
+  const summaryM = bare.match(/^\/api\/(?:states\/\w+\/|ensemble\/)?(\w+)(?:\/ensemble)?\/summary$/);
   if (summaryM) return `data/${summaryM[1]}_summary.json`;
-  const histM = bare.match(/^\/api\/(?:states\/\w+\/)?(\w+)\/(?:ensemble\/)?histogram$/);
+
+  // /api/ensemble/{chamber}/histogram  OR  /api/states/GA/{chamber}/histogram  (with ?metric=)
+  const histM = bare.match(/^\/api\/(?:states\/\w+\/|ensemble\/)?(\w+)(?:\/ensemble)?\/histogram$/);
   if (histM) return `data/${histM[1]}_hist_${params.get('metric')||'dem_seats'}.json`;
+
+  // ── Map routes ───────────────────────────────────────────────────────────
   const mapEnactedM = bare.match(/^\/api\/maps\/(?:\w+\/)?(\w+)\/enacted$/);
   if (mapEnactedM) return `data/${mapEnactedM[1]}_map_enacted.json`;
   const mapStabM = bare.match(/^\/api\/maps\/(?:\w+\/)?(\w+)\/stability$/);
   if (mapStabM) return `data/${mapStabM[1]}_map_stability.json`;
-  return path; // unmapped paths return as-is (will gracefully 404)
+
+  return path; // unmapped — will gracefully 404
 }
 
 async function fetchApi(path, options) {

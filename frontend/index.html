@@ -179,13 +179,14 @@ main{max-width:100%;margin:1rem auto;padding:0 .8rem;overflow-x:hidden}
 footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
 
 /* ── Impact tab ── */
-.impact-header{background:var(--card);border-radius:10px;padding:1rem 1.2rem;box-shadow:var(--shadow);margin-bottom:1rem}
-.impact-header h2{font-size:1rem;font-weight:700;color:var(--blue);margin-bottom:.2rem}
-.impact-header p{font-size:.82rem;color:var(--gray);line-height:1.5}
-
-.impact-chart-card{background:var(--card);border-radius:10px;box-shadow:var(--shadow);padding:1.1rem 1.3rem;margin-bottom:1rem}
-.impact-chart-card h3{font-size:.88rem;font-weight:700;color:var(--blue);margin-bottom:.2rem}
-.impact-chart-card .subtitle{font-size:.76rem;color:var(--gray);margin-bottom:.85rem;line-height:1.4}
+.impact-header{background:var(--card);border-radius:10px;padding:.6rem 1rem;box-shadow:var(--shadow);margin-bottom:.65rem;display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap}
+.impact-header h2{font-size:.92rem;font-weight:700;color:var(--blue);margin:0;white-space:nowrap}
+.impact-header p{font-size:.75rem;color:var(--gray);line-height:1.4;margin:0}
+.impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem}
+.impact-grid-full{grid-column:1/-1}
+.impact-chart-card{background:var(--card);border-radius:10px;box-shadow:var(--shadow);padding:.75rem 1rem}
+.impact-chart-card h3{font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.15rem}
+.impact-chart-card .subtitle{font-size:.68rem;color:var(--gray);margin-bottom:.5rem;line-height:1.3}
 .impact-chart-wrap{position:relative}
 .impact-no-data{
   background:var(--light);border-radius:8px;padding:1.2rem 1.4rem;
@@ -824,49 +825,42 @@ async function renderImpactView(chamber) {
 
   main.innerHTML = `
     <div class="impact-header">
-      <h2>Gerrymandering Impact — Georgia ${chamberLabel}</h2>
-      <p>
-        These charts compare each redistricting cycle on three key fairness measures.
-        Deviations from zero indicate systematic partisan advantage.
-        All metrics computed from the first general election held on each cycle's maps.
-      </p>
+      <h2>Gerrymandering Impact — GA ${chamberLabel}</h2>
+      <p>Key fairness measures across each redistricting cycle · first general election on each map</p>
     </div>
 
-    <div class="impact-chart-card">
-      <h3>Efficiency Gap Over Time</h3>
-      <div class="subtitle">
-        (D wasted votes − R wasted votes) / total votes. Positive = Republican advantage.
-        The ±8% zone is the academic threshold flagged in <em>Stephanopoulos & McGhee (2015)</em>.
-      </div>
-      ${hasAny ? `<div class="impact-chart-wrap" style="height:140px"><canvas id="chart-eg"></canvas></div>
-        <div class="impact-legend">
-          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>Favors Republicans</div>
-          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>Favors Democrats</div>
+    ${!hasAny ? noPipeline : `
+    <div class="impact-grid">
+      <div class="impact-chart-card impact-grid-full">
+        <h3>Efficiency Gap Over Time
+          <span style="font-weight:400;color:var(--gray);font-size:.68rem;margin-left:.4rem">(D wasted − R wasted) / total · positive = R advantage · ±8% = academic alarm threshold</span>
+        </h3>
+        <div class="impact-chart-wrap" style="height:110px"><canvas id="chart-eg"></canvas></div>
+        <div class="impact-legend" style="margin-top:.3rem">
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>Favors R</div>
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>Favors D</div>
           <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:#ddd;border:1px dashed #999"></div>±8% threshold</div>
-        </div>` : noPipeline}
-    </div>
-
-    <div class="impact-chart-card">
-      <h3>Seats vs. Votes — Proportionality Gap</h3>
-      <div class="subtitle">
-        Each dot is one redistricting cycle. The diagonal line is perfect proportionality (seat share = vote share).
-        Points above the line = party wins more seats than its vote share warrants.
+        </div>
       </div>
-      ${hasAny ? `<div class="sv-canvas-wrap" style="height:280px"><canvas id="chart-sv"></canvas></div>` : noPipeline}
-    </div>
 
-    <div class="impact-chart-card">
-      <h3>Wasted Votes by Cycle</h3>
-      <div class="subtitle">
-        Votes cast for a losing candidate (all wasted) + votes beyond the winning threshold (excess).
-        A large gap between D and R bars signals packing or cracking.
+      <div class="impact-chart-card">
+        <h3>Seats vs. Votes
+          <span style="font-weight:400;color:var(--gray);font-size:.68rem;margin-left:.3rem">diagonal = proportional</span>
+        </h3>
+        <div class="sv-canvas-wrap" style="height:200px"><canvas id="chart-sv"></canvas></div>
       </div>
-      ${hasAny ? `<div class="impact-chart-wrap" style="height:180px"><canvas id="chart-wv"></canvas></div>
-        <div class="impact-legend">
-          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>Democratic wasted votes</div>
-          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>Republican wasted votes</div>
-        </div>` : noPipeline}
-    </div>`;
+
+      <div class="impact-chart-card">
+        <h3>Wasted Votes by Cycle
+          <span style="font-weight:400;color:var(--gray);font-size:.68rem;margin-left:.3rem">large gap = packing/cracking</span>
+        </h3>
+        <div class="impact-chart-wrap" style="height:160px"><canvas id="chart-wv"></canvas></div>
+        <div class="impact-legend" style="margin-top:.3rem">
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--blue)"></div>D wasted</div>
+          <div class="impact-legend-item"><div class="impact-legend-swatch" style="background:var(--red)"></div>R wasted</div>
+        </div>
+      </div>
+    </div>`}`;
 
   if (!hasAny) return;
 
@@ -1284,34 +1278,22 @@ let selectedAlgo = 'recom';
 async function renderRunView(chamber) {
   const main = document.getElementById('main');
 
-  // Show info notice when running from GitHub Pages without a backend configured
-  const isGitHubPages = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
-  if (isGitHubPages && API_BASE.includes('modal.run') && API_BASE.includes('evolvedhow--fdga-chain')) {
-    // Still render the full run panel — Modal backend may be deployed
-  } else if (isGitHubPages) {
+  // Run Analysis requires a live backend — not available in static/GitHub Pages mode
+  if (IS_STATIC || !API_BASE) {
     main.innerHTML = `
       <div class="run-panel">
         <h3>Run New Ensemble</h3>
         <div class="interp-box" style="margin-bottom:1rem">
-          <strong>Backend not configured.</strong> Set <code>window.API_BASE_OVERRIDE</code> in <code>index.html</code>
-          to your Modal deployment URL, or run locally:
+          <strong>Requires a local or cloud backend.</strong>
+          GerryChain simulations cannot run in static/GitHub Pages mode.
+          To use this feature:
           <ol style="margin:.5rem 0 0 1.1rem;line-height:1.8;font-size:.85rem">
-            <li>Install: <code>cd fdga-chain && uv sync</code></li>
-            <li>Run ensemble: <code>uv run python scripts/run_ensemble.py --chamber house --steps 10000</code></li>
+            <li>Install: <code>cd ~/codebox/fdga-chain && uv sync</code></li>
             <li>Start API: <code>uv run uvicorn api.main:app --port 8001</code></li>
-            <li>Open <code>http://localhost:8001</code></li>
+            <li>Open <a href="http://localhost:8001" target="_blank">http://localhost:8001</a></li>
           </ol>
+          Or deploy to Modal — see <code>modal_app.py</code> and set <code>window.API_BASE_OVERRIDE</code>.
         </div>
-        <div class="section-title">Loaded Ensembles</div>
-        ${Object.entries(chamberMetas).map(([ch,m])=>{
-          if(!m) return '';
-          const ranAt=m.ran_at?m.ran_at.replace('T',' ').slice(0,16):'n/a';
-          return `<p style="font-size:.83rem;color:#444;margin-bottom:.4rem">
-            <strong>${ch.charAt(0).toUpperCase()+ch.slice(1)}:</strong>
-            ${(m.steps||0).toLocaleString()} steps · ε=${((m.epsilon||0)*100).toFixed(0)}% ·
-            ${m.algorithm?.name||'ReCom'} · ran ${ranAt}
-          </p>`;
-        }).join('')}
       </div>`;
     return;
   }
@@ -1542,6 +1524,8 @@ let _historyYearIdx = 0;         // current slider index
 let _historyCycles = [];         // [{year, label, event, has_boundaries, has_elections, has_metrics}]
 let _historyMetricsCache = {};   // {`chamber_year`: metricsObj}
 let _historyLoadingYear = null;  // debounce: don't double-load
+let _historyMapFitted = false;   // true after first fitBounds — don't reset zoom on slider moves
+let _historyElecCache = {};      // {`chamber_year`: elecObj} for cracking/packing comparison
 
 // Georgia-specific timeline events (beyond redistricting cycles)
 const GA_TIMELINE_EVENTS = [
@@ -1647,6 +1631,7 @@ async function renderHistoryView(chamber) {
     _historyMap = null;
   }
   _historyChamber = chamber;
+  _historyMapFitted = false;  // new chamber → allow fitBounds once
 
   main.innerHTML = `
     <div class="history-layout">
@@ -1807,15 +1792,29 @@ async function _historyMapLoadData(chamber, cycleObj) {
     ? `/api/maps/${ACTIVE_STATE}/${chamber}/enacted`
     : `/api/states/${ACTIVE_STATE}/${chamber}/boundaries/${year}`;
 
-  const [geoResp, elecResp, metricsResp] = await Promise.allSettled([
+  // Find previous cycle year for comparison
+  const cycleIdx = _historyCycles.findIndex(c => c.year === year);
+  const prevYear = cycleIdx > 0 ? _historyCycles[cycleIdx - 1].year : null;
+
+  const [geoResp, elecResp, metricsResp, prevElecResp] = await Promise.allSettled([
     fetchApi(boundaryUrl).then(r => r.ok ? r.json() : null),
-    fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/elections/${year}`).then(r => r.ok ? r.json() : null),
+    _historyElecCache[`${chamber}_${year}`]
+      ? Promise.resolve(_historyElecCache[`${chamber}_${year}`])
+      : fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/elections/${year}`).then(r => r.ok ? r.json() : null),
     fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/metrics/${year}`).then(r => r.ok ? r.json() : null),
+    prevYear && !_historyElecCache[`${chamber}_${prevYear}`]
+      ? fetchApi(`/api/states/${ACTIVE_STATE}/${chamber}/elections/${prevYear}`).then(r => r.ok ? r.json() : null)
+      : Promise.resolve(_historyElecCache[`${chamber}_${prevYear}`] || null),
   ]);
 
-  const geo     = geoResp.status === 'fulfilled'    ? geoResp.value    : null;
-  const elec    = elecResp.status === 'fulfilled'   ? elecResp.value   : null;
-  const metrics = metricsResp.status === 'fulfilled' ? metricsResp.value : null;
+  const geo      = geoResp.status === 'fulfilled'     ? geoResp.value     : null;
+  const elec     = elecResp.status === 'fulfilled'    ? elecResp.value    : null;
+  const metrics  = metricsResp.status === 'fulfilled' ? metricsResp.value : null;
+  const prevElec = prevElecResp.status === 'fulfilled' ? prevElecResp.value : null;
+
+  // Cache election data for future slider moves
+  if (elec)     _historyElecCache[`${chamber}_${year}`]     = elec;
+  if (prevElec) _historyElecCache[`${chamber}_${prevYear}`] = prevElec;
 
   if (geo) {
     const merged = elec ? mergeElections(geo, elec) : geo;
@@ -1833,8 +1832,9 @@ async function _historyMapLoadData(chamber, cycleObj) {
                        f.geometry.type === 'MultiPolygon' ? coords[0][0] : [];
           flat.forEach(c => bounds.extend(c));
         });
-        if (!bounds.isEmpty()) {
+        if (!bounds.isEmpty() && !_historyMapFitted) {
           _historyMap.fitBounds(bounds, {padding:30, duration:600});
+          _historyMapFitted = true;
         }
       }
     }
@@ -1850,69 +1850,138 @@ async function _historyMapLoadData(chamber, cycleObj) {
     return;
   }
 
-  _renderHistoryStats(chamber, year, elec, metrics);
+  _renderHistoryStats(chamber, year, elec, metrics, prevElec, prevYear);
   _historyLoadingYear = null;
 }
 
-function _renderHistoryStats(chamber, year, elec, metrics) {
+// Compute cracking/packing breakdown from district-level election results
+function _crackPack(districts) {
+  if (!districts?.length) return null;
+  const n = districts.length;
+  // Packed D: D wins by blowout (>65% dem) — those D votes are "wasted"
+  const packedD  = districts.filter(d => d.dem_pct >= 0.65).length;
+  // Cracked D: D loses narrowly (40-49.9%) — classic crack
+  const crackedD = districts.filter(d => d.dem_pct >= 0.40 && d.dem_pct < 0.50).length;
+  // Packed R: R wins by blowout (dem < 35%)
+  const packedR  = districts.filter(d => d.dem_pct < 0.35).length;
+  // Competitive: 45-55%
+  const comp     = districts.filter(d => d.dem_pct >= 0.45 && d.dem_pct < 0.55).length;
+  return {n, packedD, crackedD, packedR, comp};
+}
+
+function _delta(curr, prev, fmt) {
+  if (curr == null || prev == null) return '';
+  const d = curr - prev;
+  if (Math.abs(d) < 0.001) return '<span style="color:var(--gray)"> (=)</span>';
+  const sign = d > 0 ? '+' : '';
+  const cls  = d > 0 ? 'color:var(--red)' : 'color:var(--blue)';
+  return ` <span style="${cls};font-size:.68rem">${sign}${fmt(d)}</span>`;
+}
+
+function _renderHistoryStats(chamber, year, elec, metrics, prevElec, prevYear) {
   const el = document.getElementById('history-stats');
   if (!el) return;
 
   if (!elec && !metrics) {
-    el.innerHTML = `
-      <h4>Election Results</h4>
+    el.innerHTML = `<h4>Stats — ${year}</h4>
       <div style="font-size:.78rem;color:var(--gray);padding:.3rem 0;line-height:1.5">
         No election data for ${year}.<br>
-        Districts colored by ID (rainbow). Run<br>
         <code style="font-size:.7rem">scripts/fetch_elections.py --state GA</code>
       </div>`;
     return;
   }
 
   const data = metrics || {};
-  const e    = elec || {};
-  const demSeats    = data.dem_seats   ?? e.districts?.filter(d=>d.winner==='D').length ?? '—';
-  const repSeats    = data.rep_seats   ?? e.districts?.filter(d=>d.winner==='R').length ?? '—';
-  const numDist     = data.num_districts ?? e.num_districts ?? (demSeats + repSeats || '—');
-  const demVotePct  = data.dem_vote_share ?? e.dem_vote_share ?? null;
-  const demSeatPct  = data.dem_seat_share ?? (demSeats && numDist ? demSeats/numDist : null);
-  const eg          = data.efficiency_gap ?? null;
-  const mm          = data.mean_median ?? null;
-  const elecYear    = data.election_year ?? e.election_year ?? year;
+  const e    = elec    || {};
+  const districts    = e.districts || [];
+  const prevDistricts = prevElec?.districts || [];
+
+  const demSeats   = data.dem_seats ?? districts.filter(d=>d.winner==='D').length;
+  const repSeats   = data.rep_seats ?? districts.filter(d=>d.winner==='R').length;
+  const numDist    = data.num_districts ?? e.num_districts ?? (demSeats + repSeats) || null;
+  const demVotePct = data.dem_vote_share ?? e.dem_vote_share ?? null;
+  const demSeatPct = data.dem_seat_share ?? (numDist ? demSeats/numDist : null);
+  const eg         = data.efficiency_gap ?? null;
+  const mm         = data.mean_median ?? null;
+  const elecYear   = data.election_year ?? e.election_year ?? year;
+
+  // Previous cycle equivalents for deltas
+  const prevData     = _historyMetricsCache[`${chamber}_${prevYear}`] || {};
+  const prevDemVote  = prevData.dem_vote_share  ?? prevElec?.dem_vote_share  ?? null;
+  const prevDemSeat  = prevData.dem_seat_share  ?? prevElec?.dem_seat_share  ?? null;
+  const prevEg       = prevData.efficiency_gap  ?? null;
 
   const egClass = eg == null ? '' : Math.abs(eg) > 0.08 ? 'bad' : Math.abs(eg) > 0.04 ? 'ok' : 'good';
-  const egStr   = eg == null ? '—' : `${eg > 0 ? '+' : ''}${(eg*100).toFixed(1)}% (favors ${eg>0?'R':'D'})`;
-  const mmStr   = mm == null ? '—' : `${mm > 0 ? '+' : ''}${(mm*100).toFixed(1)}%`;
+  const egStr   = eg == null ? '—' : `${eg>0?'+':''}${(eg*100).toFixed(1)}% (favors ${eg>0?'R':'D'})`;
+  const mmStr   = mm == null ? '—' : `${mm>0?'+':''}${(mm*100).toFixed(1)}%`;
 
   const barDem = demSeatPct != null ? Math.round(demSeatPct*100) : 50;
   const barRep = 100 - barDem;
 
+  // Cracking / packing stats
+  const cp     = _crackPack(districts);
+  const cpPrev = _crackPack(prevDistricts);
+  const cpLabel = prevYear ? ` vs ${prevYear}` : '';
+
+  function cpDelta(curr, prev) {
+    if (prev == null || curr == null) return '';
+    const d = curr - prev;
+    if (d === 0) return ' <span style="color:var(--gray)">(=)</span>';
+    const sign = d > 0 ? '▲' : '▼';
+    const cls  = d > 0 ? '#b00' : '#080';
+    return ` <span style="color:${cls};font-size:.68rem">${sign}${Math.abs(d)}</span>`;
+  }
+
+  const cpBlock = cp ? `
+    <div style="margin-top:.55rem;padding-top:.45rem;border-top:1px solid var(--border)">
+      <div style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">
+        Cracking &amp; Packing${cpLabel ? ` · change from ${prevYear}` : ''}
+      </div>
+      <div class="stat-row" title="D loses 40–50%: classic crack zone">
+        <span class="stat-label">Cracked D districts</span>
+        <span class="stat-val">${cp.crackedD}/${cp.n}${cpDelta(cp.crackedD, cpPrev?.crackedD)}</span>
+      </div>
+      <div class="stat-row" title="D wins >65%: packed D voters">
+        <span class="stat-label">Packed D districts</span>
+        <span class="stat-val">${cp.packedD}/${cp.n}${cpDelta(cp.packedD, cpPrev?.packedD)}</span>
+      </div>
+      <div class="stat-row" title="R wins >65%: packed R voters (or D excluded)">
+        <span class="stat-label">Packed R districts</span>
+        <span class="stat-val">${cp.packedR}/${cp.n}${cpDelta(cp.packedR, cpPrev?.packedR)}</span>
+      </div>
+      <div class="stat-row" title="45–55% margin — genuinely contested">
+        <span class="stat-label">Competitive (45–55%)</span>
+        <span class="stat-val">${cp.comp}/${cp.n}${cpDelta(cp.comp, cpPrev?.comp)}</span>
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
-    <h4>Election Results — ${elecYear}</h4>
+    <h4>Stats — ${elecYear}</h4>
     <div class="seats-votes-bar">
       <div class="dem-seg" style="width:${barDem}%"></div>
       <div class="rep-seg" style="width:${barRep}%"></div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--gray);margin-bottom:.5rem">
+    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--gray);margin-bottom:.4rem">
       <span style="color:var(--blue)">D ${demSeats} seats (${barDem}%)</span>
       <span style="color:var(--red)">R ${repSeats} seats (${barRep}%)</span>
     </div>
     <div class="stat-row">
       <span class="stat-label">D vote share</span>
-      <span class="stat-val dem">${demVotePct!=null?(demVotePct*100).toFixed(1)+'%':'—'}</span>
+      <span class="stat-val dem">${demVotePct!=null?(demVotePct*100).toFixed(1)+'%':'—'}${_delta(demVotePct,prevDemVote,d=>(d*100).toFixed(1)+'%')}</span>
     </div>
     <div class="stat-row">
       <span class="stat-label">D seat share</span>
-      <span class="stat-val dem">${demSeatPct!=null?(demSeatPct*100).toFixed(1)+'%':'—'}</span>
+      <span class="stat-val dem">${demSeatPct!=null?(demSeatPct*100).toFixed(1)+'%':'—'}${_delta(demSeatPct,prevDemSeat,d=>(d*100).toFixed(1)+'%')}</span>
     </div>
     <div class="stat-row">
       <span class="stat-label">Efficiency gap</span>
-      <span class="stat-val ${egClass}">${egStr}</span>
+      <span class="stat-val ${egClass}">${egStr}${_delta(eg,prevEg,d=>(d*100).toFixed(1)+'%')}</span>
     </div>
     <div class="stat-row">
       <span class="stat-label">Mean–median</span>
       <span class="stat-val">${mmStr}</span>
-    </div>`;
+    </div>
+    ${cpBlock}`;
 }
 
 function _showDistrictHover(props) {

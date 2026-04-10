@@ -228,21 +228,30 @@ footer{text-align:center;padding:1.8rem;font-size:.76rem;color:var(--gray)}
 .map-layer-btn:hover:not(.active){border-color:#aab}
 
 /* ── History / Timeline view ── */
-.history-layout{display:grid;grid-template-columns:1fr 280px;gap:1rem;align-items:start}
-@media(max-width:860px){.history-layout{grid-template-columns:1fr}}
+/* Top strip: map left | year + timeline right */
+.history-top{display:grid;grid-template-columns:1fr 290px;gap:.65rem;align-items:start}
+/* Bottom strip: summary | cracking | district table */
+.history-bottom{display:grid;grid-template-columns:190px 185px 1fr;gap:.65rem;margin-top:.65rem}
+@media(max-width:960px){.history-top{grid-template-columns:1fr}.history-bottom{grid-template-columns:1fr 1fr}}
 
 .history-map-wrap{position:relative;border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
-#history-map{height:540px;width:100%}
+#history-map{height:310px;width:100%}
 
-.history-sidebar{display:flex;flex-direction:column;gap:.85rem}
-
-/* Year display */
+/* Year display — compact horizontal */
 .history-year-badge{
   background:var(--blue);color:#fff;border-radius:10px;
-  padding:.8rem 1rem;text-align:center
+  padding:.5rem .85rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem
 }
-.history-year-num{font-size:2.4rem;font-weight:800;line-height:1;letter-spacing:-.02em}
-.history-year-event{font-size:.75rem;opacity:.85;margin-top:.3rem;line-height:1.4}
+.history-year-num{font-size:2rem;font-weight:800;line-height:1;letter-spacing:-.02em;flex-shrink:0}
+.history-year-event{font-size:.72rem;opacity:.9;line-height:1.35;flex:1}
+.history-year-arrows{display:flex;gap:.3rem;flex-shrink:0}
+.history-arrow-btn{
+  background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;
+  width:28px;height:28px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  transition:background .15s
+}
+.history-arrow-btn:hover{background:rgba(255,255,255,.35)}
+.history-arrow-btn:disabled{opacity:.3;cursor:default}
 
 /* Timeline slider */
 .timeline-card{background:var(--card);border-radius:10px;padding:.9rem 1rem;box-shadow:var(--shadow)}
@@ -294,9 +303,9 @@ input[type=range].timeline-range::-moz-range-thumb{
 .timeline-event-text{color:#444}
 
 /* Stats panel */
-.history-stats-card{background:var(--card);border-radius:10px;padding:.85rem 1rem;box-shadow:var(--shadow)}
-.history-stats-card h4{font-size:.78rem;font-weight:700;color:var(--blue);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:.05em}
-.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.22rem 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.history-stats-card{background:var(--card);border-radius:10px;padding:.7rem .85rem;box-shadow:var(--shadow)}
+.history-stats-card h4{font-size:.72rem;font-weight:700;color:var(--blue);margin-bottom:.45rem;text-transform:uppercase;letter-spacing:.05em}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.18rem 0;border-bottom:1px solid var(--border);font-size:.76rem}
 .stat-row:last-child{border-bottom:none}
 .stat-label{color:var(--gray)}
 .stat-val{font-weight:700}
@@ -305,6 +314,25 @@ input[type=range].timeline-range::-moz-range-thumb{
 .stat-val.bad{color:var(--red)}
 .stat-val.ok {color:var(--amber)}
 .stat-val.good{color:var(--green)}
+
+/* District wasted-vote breakdown table */
+.wasted-table{width:100%;border-collapse:collapse;font-size:.71rem}
+.wasted-table th{text-align:left;font-size:.62rem;font-weight:700;color:var(--gray);
+  text-transform:uppercase;padding:.18rem .3rem;border-bottom:2px solid var(--border);white-space:nowrap}
+.wasted-table td{padding:.2rem .3rem;border-bottom:1px solid var(--border);vertical-align:middle}
+.wasted-table tr:last-child td{border-bottom:none}
+.wasted-table tr.cracked-d{background:#fff3f3}
+.wasted-table tr.packed-d {background:#f0f4ff}
+.wasted-table tr.packed-r {background:#fff8f0}
+.wasted-type-badge{
+  display:inline-block;border-radius:3px;padding:.08rem .3rem;font-size:.6rem;font-weight:700;white-space:nowrap
+}
+.wasted-type-badge.cracked-d{background:#fde8e8;color:#b00}
+.wasted-type-badge.packed-d {background:#dce8fd;color:#14498c}
+.wasted-type-badge.packed-r {background:#fdeede;color:#963e00}
+.wasted-type-badge.comp     {background:#e8f5e9;color:#2e7d32}
+.wasted-bar-wrap{width:60px;display:inline-block;vertical-align:middle}
+.wasted-bar{height:6px;border-radius:3px;margin:.1rem 0}
 
 /* Seats-votes mini bar */
 .seats-votes-bar{height:10px;border-radius:5px;overflow:hidden;display:flex;margin:.3rem 0 .15rem}
@@ -1380,6 +1408,33 @@ async function renderRunView(chamber) {
   });
 }
 
+// History timeline step (used by arrow buttons + keyboard)
+window._historyStep = function(dir) {
+  const newIdx = Math.max(0, Math.min(_historyCycles.length - 1, _historyYearIdx + dir));
+  if (newIdx === _historyYearIdx) return;
+  _historyYearIdx = newIdx;
+  const slider = document.getElementById('timeline-slider');
+  if (slider) slider.value = newIdx;
+  _historyMapLoadData(_historyChamber, _historyCycles[newIdx]);
+  _updateArrowButtons();
+};
+
+function _updateArrowButtons() {
+  const prev = document.getElementById('btn-prev');
+  const next = document.getElementById('btn-next');
+  if (prev) prev.disabled = _historyYearIdx <= 0;
+  if (next) next.disabled = _historyYearIdx >= _historyCycles.length - 1;
+}
+
+// Global keyboard handler for history arrow keys
+document.addEventListener('keydown', e => {
+  if (activeView !== 'history') return;
+  // Ignore when focus is inside an input/select
+  if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); window._historyStep(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); window._historyStep(1);  }
+});
+
 window.selectAlgo = function(key) {
   selectedAlgo = key;
   document.querySelectorAll('.algo-card').forEach(c=>c.classList.toggle('selected',c.dataset.algo===key));
@@ -1634,42 +1689,54 @@ async function renderHistoryView(chamber) {
   _historyMapFitted = false;  // new chamber → allow fitBounds once
 
   main.innerHTML = `
-    <div class="history-layout">
+    <div class="history-top">
       <div class="history-map-wrap">
         <div id="history-map"></div>
         <div class="map-legend-overlay">
-          <div style="font-size:.67rem;font-weight:700;color:var(--gray);margin-bottom:.1rem">PARTISAN LEAN</div>
+          <div style="font-size:.6rem;font-weight:700;color:var(--gray);margin-bottom:.1rem">PARTISAN LEAN</div>
           <div class="legend-gradient-bar"></div>
-          <div class="legend-gradient-labels">
-            <span>100% R</span><span>50/50</span><span>100% D</span>
-          </div>
+          <div class="legend-gradient-labels"><span>100% R</span><span>50/50</span><span>100% D</span></div>
+        </div>
+        <div id="history-district-info" style="display:none;position:absolute;top:.6rem;left:.6rem;background:rgba(255,255,255,.95);border-radius:8px;padding:.45rem .65rem;box-shadow:0 2px 8px rgba(0,0,0,.18);font-size:.74rem;line-height:1.5;pointer-events:none;max-width:160px">
+          <div id="history-district-body"></div>
         </div>
       </div>
-      <div class="history-sidebar">
+
+      <div style="display:flex;flex-direction:column;gap:.55rem">
         <div class="history-year-badge" id="history-year-badge">
-          <div class="history-year-num" id="history-year-num">…</div>
-          <div class="history-year-event" id="history-year-event">Loading…</div>
+          <div>
+            <div class="history-year-num" id="history-year-num">…</div>
+            <div class="history-year-event" id="history-year-event">Loading…</div>
+          </div>
+          <div class="history-year-arrows">
+            <button class="history-arrow-btn" id="btn-prev" title="Previous cycle (←)" onclick="_historyStep(-1)">&#8592;</button>
+            <button class="history-arrow-btn" id="btn-next" title="Next cycle (→)" onclick="_historyStep(1)">&#8594;</button>
+          </div>
         </div>
 
-        <div class="timeline-card">
-          <h4>Redistricting Timeline</h4>
+        <div class="timeline-card" style="padding:.65rem .85rem">
+          <h4 style="margin-bottom:.5rem">Redistricting Timeline <span style="font-weight:400;color:var(--gray);font-size:.65rem">← → keys</span></h4>
           <div class="timeline-track">
-            <input type="range" class="timeline-range" id="timeline-slider"
-              min="0" max="0" value="0" step="1">
+            <input type="range" class="timeline-range" id="timeline-slider" min="0" max="0" value="0" step="1">
           </div>
           <div class="timeline-ticks" id="timeline-ticks"></div>
-          <div class="timeline-events" id="timeline-events"></div>
+          <div class="timeline-events" id="timeline-events" style="max-height:130px;overflow-y:auto"></div>
         </div>
+      </div>
+    </div>
 
-        <div class="history-stats-card" id="history-stats">
-          <h4>Election Results</h4>
-          <div class="loading" style="padding:.5rem 0;font-size:.8rem">Loading…</div>
-        </div>
-
-        <div class="district-hover-card" id="history-district-info" style="display:none">
-          <div class="section-title" style="margin-bottom:.4rem">District</div>
-          <div id="history-district-body" style="font-size:.8rem;line-height:1.6;color:#333"></div>
-        </div>
+    <div class="history-bottom">
+      <div class="history-stats-card" id="history-stats">
+        <h4>Summary</h4>
+        <div class="loading" style="padding:.4rem 0;font-size:.75rem">Loading…</div>
+      </div>
+      <div class="history-stats-card" id="history-crack-pack">
+        <h4>Cracking &amp; Packing</h4>
+        <div class="loading" style="padding:.4rem 0;font-size:.75rem">Loading…</div>
+      </div>
+      <div class="history-stats-card" id="history-wasted-detail">
+        <h4>Wasted Votes — How It&apos;s Calculated</h4>
+        <div class="loading" style="padding:.4rem 0;font-size:.75rem">Loading…</div>
       </div>
     </div>`;
 
@@ -1879,110 +1946,169 @@ function _delta(curr, prev, fmt) {
 }
 
 function _renderHistoryStats(chamber, year, elec, metrics, prevElec, prevYear) {
-  const el = document.getElementById('history-stats');
-  if (!el) return;
+  const summaryEl  = document.getElementById('history-stats');
+  const cpEl       = document.getElementById('history-crack-pack');
+  const wastedEl   = document.getElementById('history-wasted-detail');
+
+  const noData = `<div style="font-size:.74rem;color:var(--gray);padding:.3rem 0">No data for ${year}</div>`;
 
   if (!elec && !metrics) {
-    el.innerHTML = `<h4>Stats — ${year}</h4>
-      <div style="font-size:.78rem;color:var(--gray);padding:.3rem 0;line-height:1.5">
-        No election data for ${year}.<br>
-        <code style="font-size:.7rem">scripts/fetch_elections.py --state GA</code>
-      </div>`;
+    if (summaryEl) summaryEl.innerHTML = `<h4>Summary</h4>${noData}`;
+    if (cpEl)      cpEl.innerHTML      = `<h4>Cracking &amp; Packing</h4>${noData}`;
+    if (wastedEl)  wastedEl.innerHTML  = `<h4>Wasted Votes</h4>${noData}`;
     return;
   }
 
   const data = metrics || {};
   const e    = elec    || {};
-  const districts    = e.districts || [];
-  const prevDistricts = prevElec?.districts || [];
+  const districts     = data.district_details || e.districts || [];
+  const prevDistricts = prevElec?.district_details || prevElec?.districts || [];
+  const totalVotes    = data.total_votes || e.total_votes || 1;
 
-  const demSeats   = data.dem_seats ?? districts.filter(d=>d.winner==='D').length;
-  const repSeats   = data.rep_seats ?? districts.filter(d=>d.winner==='R').length;
-  const _ds = data.num_districts != null ? data.num_districts : e.num_districts;
-  const numDist    = _ds != null ? _ds : (demSeats + repSeats) > 0 ? (demSeats + repSeats) : null;
+  const demSeats  = data.dem_seats ?? districts.filter(d=>d.winner==='D').length;
+  const repSeats  = data.rep_seats ?? districts.filter(d=>d.winner==='R').length;
+  const _ds       = data.num_districts != null ? data.num_districts : e.num_districts;
+  const numDist   = _ds != null ? _ds : (demSeats + repSeats) > 0 ? (demSeats + repSeats) : null;
   const demVotePct = data.dem_vote_share ?? e.dem_vote_share ?? null;
   const demSeatPct = data.dem_seat_share ?? (numDist ? demSeats/numDist : null);
   const eg         = data.efficiency_gap ?? null;
   const mm         = data.mean_median ?? null;
   const elecYear   = data.election_year ?? e.election_year ?? year;
+  const wastedDPct = data.wasted_dem_pct ?? null;
+  const wastedRPct = data.wasted_rep_pct ?? null;
 
-  // Previous cycle equivalents for deltas
-  const prevData     = _historyMetricsCache[`${chamber}_${prevYear}`] || {};
-  const prevDemVote  = prevData.dem_vote_share  ?? prevElec?.dem_vote_share  ?? null;
-  const prevDemSeat  = prevData.dem_seat_share  ?? prevElec?.dem_seat_share  ?? null;
-  const prevEg       = prevData.efficiency_gap  ?? null;
+  const prevData    = _historyMetricsCache[`${chamber}_${prevYear}`] || {};
+  const prevDemVote = prevData.dem_vote_share ?? prevElec?.dem_vote_share ?? null;
+  const prevDemSeat = prevData.dem_seat_share ?? prevElec?.dem_seat_share ?? null;
+  const prevEg      = prevData.efficiency_gap ?? null;
 
   const egClass = eg == null ? '' : Math.abs(eg) > 0.08 ? 'bad' : Math.abs(eg) > 0.04 ? 'ok' : 'good';
-  const egStr   = eg == null ? '—' : `${eg>0?'+':''}${(eg*100).toFixed(1)}% (favors ${eg>0?'R':'D'})`;
+  const egStr   = eg == null ? '—' : `${eg>0?'+':''}${(eg*100).toFixed(1)}% (${eg>0?'R':'D'} adv.)`;
   const mmStr   = mm == null ? '—' : `${mm>0?'+':''}${(mm*100).toFixed(1)}%`;
+  const barDem  = demSeatPct != null ? Math.round(demSeatPct*100) : 50;
+  const barRep  = 100 - barDem;
 
-  const barDem = demSeatPct != null ? Math.round(demSeatPct*100) : 50;
-  const barRep = 100 - barDem;
-
-  // Cracking / packing stats
-  const cp     = _crackPack(districts);
-  const cpPrev = _crackPack(prevDistricts);
-  const cpLabel = prevYear ? ` vs ${prevYear}` : '';
-
-  function cpDelta(curr, prev) {
-    if (prev == null || curr == null) return '';
-    const d = curr - prev;
-    if (d === 0) return ' <span style="color:var(--gray)">(=)</span>';
-    const sign = d > 0 ? '▲' : '▼';
-    const cls  = d > 0 ? '#b00' : '#080';
-    return ` <span style="color:${cls};font-size:.68rem">${sign}${Math.abs(d)}</span>`;
-  }
-
-  const cpBlock = cp ? `
-    <div style="margin-top:.55rem;padding-top:.45rem;border-top:1px solid var(--border)">
-      <div style="font-size:.7rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem">
-        Cracking &amp; Packing${cpLabel ? ` · change from ${prevYear}` : ''}
-      </div>
-      <div class="stat-row" title="D loses 40–50%: classic crack zone">
-        <span class="stat-label">Cracked D districts</span>
-        <span class="stat-val">${cp.crackedD}/${cp.n}${cpDelta(cp.crackedD, cpPrev?.crackedD)}</span>
-      </div>
-      <div class="stat-row" title="D wins >65%: packed D voters">
-        <span class="stat-label">Packed D districts</span>
-        <span class="stat-val">${cp.packedD}/${cp.n}${cpDelta(cp.packedD, cpPrev?.packedD)}</span>
-      </div>
-      <div class="stat-row" title="R wins >65%: packed R voters (or D excluded)">
-        <span class="stat-label">Packed R districts</span>
-        <span class="stat-val">${cp.packedR}/${cp.n}${cpDelta(cp.packedR, cpPrev?.packedR)}</span>
-      </div>
-      <div class="stat-row" title="45–55% margin — genuinely contested">
-        <span class="stat-label">Competitive (45–55%)</span>
-        <span class="stat-val">${cp.comp}/${cp.n}${cpDelta(cp.comp, cpPrev?.comp)}</span>
-      </div>
-    </div>` : '';
-
-  el.innerHTML = `
-    <h4>Stats — ${elecYear}</h4>
+  // ── Panel 1: Summary ────────────────────────────────────────────────────
+  if (summaryEl) summaryEl.innerHTML = `
+    <h4>Summary — ${elecYear}</h4>
     <div class="seats-votes-bar">
       <div class="dem-seg" style="width:${barDem}%"></div>
       <div class="rep-seg" style="width:${barRep}%"></div>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--gray);margin-bottom:.4rem">
-      <span style="color:var(--blue)">D ${demSeats} seats (${barDem}%)</span>
-      <span style="color:var(--red)">R ${repSeats} seats (${barRep}%)</span>
+    <div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--gray);margin-bottom:.35rem">
+      <span style="color:var(--blue)">D ${demSeats} (${barDem}%)</span>
+      <span style="color:var(--red)">R ${repSeats} (${barRep}%)</span>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">D vote share</span>
-      <span class="stat-val dem">${demVotePct!=null?(demVotePct*100).toFixed(1)+'%':'—'}${_delta(demVotePct,prevDemVote,d=>(d*100).toFixed(1)+'%')}</span>
+    <div class="stat-row"><span class="stat-label">D vote share</span>
+      <span class="stat-val dem">${demVotePct!=null?(demVotePct*100).toFixed(1)+'%':'—'}${_delta(demVotePct,prevDemVote,d=>(d*100).toFixed(1)+'%')}</span></div>
+    <div class="stat-row"><span class="stat-label">D seat share</span>
+      <span class="stat-val dem">${demSeatPct!=null?(demSeatPct*100).toFixed(1)+'%':'—'}${_delta(demSeatPct,prevDemSeat,d=>(d*100).toFixed(1)+'%')}</span></div>
+    <div class="stat-row"><span class="stat-label">Efficiency gap</span>
+      <span class="stat-val ${egClass}">${egStr}${_delta(eg,prevEg,d=>(d*100).toFixed(1)+'%')}</span></div>
+    <div class="stat-row"><span class="stat-label">Mean–median</span>
+      <span class="stat-val">${mmStr}</span></div>
+    ${wastedDPct!=null ? `<div class="stat-row"><span class="stat-label">D wasted votes</span>
+      <span class="stat-val bad">${(wastedDPct*100).toFixed(1)}%</span></div>` : ''}
+    ${wastedRPct!=null ? `<div class="stat-row"><span class="stat-label">R wasted votes</span>
+      <span class="stat-val" style="color:var(--amber)">${(wastedRPct*100).toFixed(1)}%</span></div>` : ''}`;
+
+  // ── Panel 2: Cracking & Packing ──────────────────────────────────────────
+  const cp     = _crackPack(districts);
+  const cpPrev = _crackPack(prevDistricts);
+
+  function cpDelta(curr, prev) {
+    if (prev == null || curr == null || !prevYear) return '';
+    const d = curr - prev;
+    if (d === 0) return ' <span style="color:var(--gray)">(=)</span>';
+    const arrow = d > 0 ? '▲' : '▼';
+    const color = d > 0 ? '#b00' : '#2e7d32';
+    return ` <span style="color:${color};font-size:.67rem">${arrow}${Math.abs(d)}</span>`;
+  }
+
+  if (cpEl) cpEl.innerHTML = cp ? `
+    <h4>Cracking &amp; Packing${prevYear ? ` <span style="font-weight:400;color:var(--gray)">vs ${prevYear}</span>` : ''}</h4>
+    <div class="stat-row" title="D loses 40–50%: votes split across many districts"><span class="stat-label">Cracked D</span>
+      <span class="stat-val bad">${cp.crackedD}/${cp.n}${cpDelta(cp.crackedD,cpPrev?.crackedD)}</span></div>
+    <div class="stat-row" title="D wins >65%: D voters concentrated, excess wasted"><span class="stat-label">Packed D</span>
+      <span class="stat-val dem">${cp.packedD}/${cp.n}${cpDelta(cp.packedD,cpPrev?.packedD)}</span></div>
+    <div class="stat-row" title="R wins >65%: opposition excluded"><span class="stat-label">Packed R</span>
+      <span class="stat-val rep">${cp.packedR}/${cp.n}${cpDelta(cp.packedR,cpPrev?.packedR)}</span></div>
+    <div class="stat-row" title="45–55%: genuinely contested"><span class="stat-label">Competitive</span>
+      <span class="stat-val good">${cp.comp}/${cp.n}${cpDelta(cp.comp,cpPrev?.comp)}</span></div>
+    <div style="font-size:.63rem;color:var(--gray);margin-top:.4rem;line-height:1.4">
+      Cracked = D loses 40–50% · Packed D = D&gt;65% · Packed R = D&lt;35%
+    </div>` : `<h4>Cracking &amp; Packing</h4>${noData}`;
+
+  // ── Panel 3: Wasted votes district breakdown ─────────────────────────────
+  if (!wastedEl) return;
+
+  if (!districts.length) {
+    wastedEl.innerHTML = `<h4>Wasted Votes — How It's Calculated</h4>${noData}`;
+    return;
+  }
+
+  // Annotate each district with wasted vote type
+  const annotated = districts.map(d => {
+    const demPct = d.dem_pct;
+    const wD = d.wasted_dem ?? (d.winner === 'R' ? d.dem_votes : Math.max(0, d.dem_votes - Math.floor(d.total_votes/2) - 1));
+    const wR = d.wasted_rep ?? (d.winner === 'D' ? d.rep_votes : Math.max(0, d.rep_votes - Math.floor(d.total_votes/2) - 1));
+    let type;
+    if (d.winner === 'R' && demPct >= 0.40) type = 'cracked-d';
+    else if (d.winner === 'D' && demPct >= 0.65) type = 'packed-d';
+    else if (demPct < 0.35) type = 'packed-r';
+    else type = 'comp';
+    return {...d, wD, wR, type};
+  }).sort((a, b) => b.wD - a.wD);  // sort by D wasted desc
+
+  const typeLabel = {
+    'cracked-d': 'Cracked D',
+    'packed-d':  'Packed D',
+    'packed-r':  'Packed R',
+    'comp':      'Competitive',
+  };
+
+  const totalWastedD = annotated.reduce((s,d) => s + d.wD, 0);
+  const totalWastedR = annotated.reduce((s,d) => s + d.wR, 0);
+
+  const rows = annotated.map(d => {
+    const demBarW  = Math.round(d.dem_pct * 56);
+    const pctAll   = totalVotes > 0 ? (d.wD / totalVotes * 100).toFixed(1) : '—';
+    return `<tr class="${d.type}">
+      <td style="font-weight:700">D${d.district_id}</td>
+      <td>
+        <div class="wasted-bar-wrap">
+          <div class="wasted-bar" style="width:${demBarW}px;max-width:56px;background:${d.dem_pct>=0.5?'var(--blue)':'var(--red)'}"></div>
+        </div>
+        <span style="font-size:.65rem;color:var(--gray)">${(d.dem_pct*100).toFixed(0)}%D</span>
+      </td>
+      <td><span class="wasted-type-badge ${d.type}">${typeLabel[d.type]}</span></td>
+      <td style="color:var(--blue);font-weight:700">${d.wD.toLocaleString()}</td>
+      <td style="font-size:.65rem;color:var(--gray)">${pctAll}% of all</td>
+      <td style="color:var(--red)">${d.wR.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+
+  wastedEl.innerHTML = `
+    <h4>Wasted Votes — How It's Calculated
+      <span style="font-weight:400;color:var(--gray);font-size:.63rem;margin-left:.3rem">sorted by D wasted ↓</span>
+    </h4>
+    <div style="font-size:.67rem;color:var(--gray);margin-bottom:.4rem;line-height:1.4">
+      <strong>Cracked D:</strong> D loses → <em>all</em> D votes wasted.
+      <strong>Packed D:</strong> D wins big → excess above 50%+1 wasted.
+      Total D wasted: <strong style="color:var(--blue)">${totalWastedD.toLocaleString()}</strong>
+      (${(totalWastedD/totalVotes*100).toFixed(1)}%) ·
+      Total R wasted: <strong style="color:var(--red)">${totalWastedR.toLocaleString()}</strong>
+      (${(totalWastedR/totalVotes*100).toFixed(1)}%)
     </div>
-    <div class="stat-row">
-      <span class="stat-label">D seat share</span>
-      <span class="stat-val dem">${demSeatPct!=null?(demSeatPct*100).toFixed(1)+'%':'—'}${_delta(demSeatPct,prevDemSeat,d=>(d*100).toFixed(1)+'%')}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Efficiency gap</span>
-      <span class="stat-val ${egClass}">${egStr}${_delta(eg,prevEg,d=>(d*100).toFixed(1)+'%')}</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Mean–median</span>
-      <span class="stat-val">${mmStr}</span>
-    </div>
-    ${cpBlock}`;
+    <div style="overflow-y:auto;max-height:160px">
+      <table class="wasted-table">
+        <thead><tr>
+          <th>Dist</th><th>Result</th><th>Type</th>
+          <th>D Wasted</th><th>% All Votes</th><th>R Wasted</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
 function _showDistrictHover(props) {
@@ -2059,6 +2185,8 @@ function _buildTimeline(chamber, cycles) {
         <span class="timeline-event-text">${ev.label}</span>
       </div>`).join('');
   }
+
+  _updateArrowButtons();
 
   // Kick off loading the initial year
   if (cycles.length && _historyMap?.isStyleLoaded()) {

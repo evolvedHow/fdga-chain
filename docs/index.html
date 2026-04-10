@@ -1898,7 +1898,7 @@ function _renderHistoryStats(chamber, year, elec, metrics, prevElec, prevYear) {
 
   const demSeats   = data.dem_seats ?? districts.filter(d=>d.winner==='D').length;
   const repSeats   = data.rep_seats ?? districts.filter(d=>d.winner==='R').length;
-  const numDist    = data.num_districts ?? e.num_districts ?? (demSeats + repSeats) || null;
+  const numDist    = data.num_districts ?? e.num_districts ?? ((demSeats + repSeats) || null);
   const demVotePct = data.dem_vote_share ?? e.dem_vote_share ?? null;
   const demSeatPct = data.dem_seat_share ?? (numDist ? demSeats/numDist : null);
   const eg         = data.efficiency_gap ?? null;
